@@ -3,7 +3,16 @@
 import { useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Label,
+} from "recharts";
 import { DownloadIcon, ImageIcon } from "lucide-react";
 
 interface ThreatChartProps {
@@ -94,7 +103,8 @@ export default function ThreatChart({ data }: ThreatChartProps) {
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={{ r: 4 }}
-                label={<CustomizedLabel />}
+                // Instead of passing <CustomizedLabel />, we pass a function
+                label={(props) => <CustomizedLabel {...(props as CustomizedLabelProps)} />}
               />
             </LineChart>
           </ResponsiveContainer>
