@@ -34,7 +34,7 @@ export default function CsvUpload() {
       return;
     }
 
-    // Read the CSV file as text and count non-empty lines
+    // Read CSV file as text and count non-empty lines
     const csvText = await file.text();
     const lines = csvText.split("\n").filter((line) => line.trim() !== "");
     if (lines.length > 10) {
@@ -62,8 +62,7 @@ export default function CsvUpload() {
         return;
       }
 
-      // Instead of automatically triggering a download,
-      // create an object URL for the returned CSV blob.
+      // Get the response blob (CSV file)
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
@@ -125,14 +124,21 @@ export default function CsvUpload() {
       {processing && (
         <Alert variant="default" className="mt-4">
           <AlertTitle>Processing</AlertTitle>
-          <AlertDescription>Upload received, please wait to download results...</AlertDescription>
+          <AlertDescription>
+            Upload received, please wait to download results...
+          </AlertDescription>
         </Alert>
       )}
 
       {downloadUrl && (
-        <Button className="mt-4" onClick={handleDownload}>
-          Download CSV
-        </Button>
+        <div className="mt-4 space-y-2">
+          <Alert variant="default">
+            <CheckCircleIcon className="h-4 w-4 text-green-400" />
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>Your CSV is ready for download.</AlertDescription>
+          </Alert>
+          <Button onClick={handleDownload}>Download CSV</Button>
+        </div>
       )}
     </div>
   );
