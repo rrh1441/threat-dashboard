@@ -30,10 +30,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Fetches threat data for a single keyword or multiple keywords.
-   * @param keywords An array of keywords to fetch threat data for.
+   * Fetch threat data from the API for a given list of keywords.
+   * (Note: the /api/threats endpoint accepts a single keyword, so we use the first element.)
    */
-  async function fetchThreatData(keywords: string[]) {
+  async function fetchThreatData(keywords: string[]): Promise<void> {
     setLoading(true);
     setError(null);
     setPartial(false);
@@ -43,7 +43,7 @@ export default function Home() {
       const response = await fetch("/api/threats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: keywords[0] }), // Only sending the first keyword
+        body: JSON.stringify({ keyword: keywords[0] }), // Only the first keyword is used
       });
 
       if (!response.ok) {
@@ -61,7 +61,7 @@ export default function Home() {
         .sort((a, b) => (a.date < b.date ? -1 : 1));
 
       setChartData(newChartData);
-    } catch (err) {
+    } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -73,18 +73,16 @@ export default function Home() {
   }
 
   /**
-   * Handles the form submission for a single keyword.
-   * @param keyword The keyword to search for.
+   * Callback for the QueryForm (single keyword search).
    */
-  function handleQuerySubmit({ keyword }: { keyword: string }) {
+  function handleQuerySubmit({ keyword }: { keyword: string }): void {
     fetchThreatData([keyword]);
   }
 
   /**
-   * Handles bulk CSV upload and processes multiple keywords.
-   * @param keywords An array of keywords extracted from the CSV file.
+   * Callback for the CsvUpload component (bulk upload).
    */
-  function handleCsvUpload(keywords: string[]) {
+  function handleCsvUpload(keywords: string[]): void {
     fetchThreatData(keywords);
   }
 
@@ -125,7 +123,7 @@ export default function Home() {
             )}
 
             {partial && !error && (
-              <Alert variant="warning" className="mt-4">
+              <Alert variant="default" className="mt-4">
                 <AlertTriangleIcon className="h-4 w-4" />
                 <AlertTitle>Warning</AlertTitle>
                 <AlertDescription>
