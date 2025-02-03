@@ -6,29 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UploadIcon, AlertCircleIcon, CheckCircleIcon } from "lucide-react";
 
-export interface CsvUploadProps {
-  // onUpload is no longer used externally since the component handles its own state.
-}
-
 export default function CsvUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    setWarning(null);
     const selectedFile = event.target.files?.[0];
     if (selectedFile && selectedFile.type === "text/csv") {
       setFile(selectedFile);
       setError(null);
-      setSuccess(false);
       setDownloadUrl(null);
     } else {
       setFile(null);
       setError("Please select a valid CSV file.");
-      setSuccess(false);
       setDownloadUrl(null);
     }
   };
@@ -39,9 +34,17 @@ export default function CsvUpload() {
       return;
     }
 
-    setError(null);
-    setSuccess(false);
+    // Read the CSV file as text and count non-empty lines
+    const csvText = await file.text();
+    const lines = csvText.split("\n").filter((line) => line.trim() !== "");
+    if (lines.length > 10) {
+      setWarning("Warning: Please do not upload a CSV with more than 10 lines.");
+      return;
+    }
+
     setProcessing(true);
+    setError(null);
+    setWarning(null);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -60,11 +63,10 @@ export default function CsvUpload() {
       }
 
       // Instead of automatically triggering a download,
-      // create a URL for the returned CSV Blob and store it in state.
+      // create an object URL for the returned CSV blob.
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
-      setSuccess(true);
     } catch {
       setError("An error occurred while uploading the file.");
     } finally {
@@ -78,16 +80,14 @@ export default function CsvUpload() {
 
   const handleDownload = (): void => {
     if (downloadUrl) {
-      // Open the URL in a new tab/window to trigger download.
-      const downloadLink = document.createElement("a");
-      downloadLink.href = downloadUrl;
-      downloadLink.download = "daily_counts.csv";
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      // Optionally, revoke the object URL later:
-      // URL.revokeObjectURL(downloadUrl);
-      setDownloadUrl(null); // Clear the URL after download if desired.
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = "daily_counts.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+      setDownloadUrl(null);
     }
   };
 
@@ -115,18 +115,17 @@ export default function CsvUpload() {
         </Alert>
       )}
 
+      {warning && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTitle>Warning</AlertTitle>
+          <AlertDescription>{warning}</AlertDescription>
+        </Alert>
+      )}
+
       {processing && (
         <Alert variant="default" className="mt-4">
           <AlertTitle>Processing</AlertTitle>
           <AlertDescription>Upload received, please wait to download results...</AlertDescription>
-        </Alert>
-      )}
-
-      {success && !downloadUrl && !processing && (
-        <Alert variant="default" className="mt-4">
-          <CheckCircleIcon className="h-4 w-4 text-green-400" />
-          <AlertTitle>Success</AlertTitle>
-          <AlertDescription>CSV file processed successfully.</AlertDescription>
         </Alert>
       )}
 
