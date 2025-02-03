@@ -29,11 +29,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Fetch threat data from the API for a given list of keywords.
-   * (Note: the /api/threats endpoint accepts a single keyword, so we use the first element.)
-   */
-  async function fetchThreatData(keywords: string[]): Promise<void> {
+  async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
     setLoading(true);
     setError(null);
     setPartial(false);
@@ -43,7 +39,7 @@ export default function Home() {
       const response = await fetch("/api/threats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: keywords[0] }), // Only the first keyword is used
+        body: JSON.stringify({ keyword }),
       });
 
       if (!response.ok) {
@@ -72,20 +68,6 @@ export default function Home() {
     }
   }
 
-  /**
-   * Callback for the QueryForm (single keyword search).
-   */
-  function handleQuerySubmit({ keyword }: { keyword: string }): void {
-    fetchThreatData([keyword]);
-  }
-
-  /**
-   * Callback for the CsvUpload component (bulk upload).
-   */
-  function handleCsvUpload(keywords: string[]): void {
-    fetchThreatData(keywords);
-  }
-
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -104,7 +86,8 @@ export default function Home() {
                 <QueryForm onSubmit={handleQuerySubmit} />
               </TabsContent>
               <TabsContent value="bulk">
-                <CsvUpload onUpload={handleCsvUpload} />
+                {/* Remove onUpload prop since CsvUpload now manages its own upload */}
+                <CsvUpload />
               </TabsContent>
             </Tabs>
 
