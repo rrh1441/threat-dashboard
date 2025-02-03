@@ -111,7 +111,7 @@ export default function Home() {
             {loading && (
               <div className="flex items-center justify-center space-x-2 text-blue-600 mt-4">
                 <LoaderIcon className="animate-spin" />
-                <p>Loading data (Please wait ~15 seconds for results)...</p>
+                <p>Loading data (Please wait ~15 seconds for your results)...</p>
               </div>
             )}
 
