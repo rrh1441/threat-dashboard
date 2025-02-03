@@ -39,34 +39,40 @@ export default function ThreatChart({ data, keyword }: ThreatChartProps) {
       const svgElement = chartRef.current.querySelector("svg");
       if (svgElement) {
         const svgData = new XMLSerializer().serializeToString(svgElement);
-        const canvas = document.createElement("canvas");
         const rect = svgElement.getBoundingClientRect();
+        const extraHeight = 40; // Extra space for the keyword header
+
+        // Create a canvas that is as wide as the chart, but taller to allow for a header
+        const canvas = document.createElement("canvas");
         canvas.width = rect.width;
-        canvas.height = rect.height;
+        canvas.height = rect.height + extraHeight;
         const ctx = canvas.getContext("2d");
 
         if (ctx) {
-          // Fill canvas with white background
+          // Fill the entire canvas with white
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // If a keyword is provided, draw it at the top center
+          if (keyword) {
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#000000";
+            ctx.textAlign = "center";
+            ctx.fillText(`Keyword: ${keyword}`, canvas.width / 2, 20);
+          }
         }
 
         const img = new Image();
         img.onload = () => {
-          ctx?.drawImage(img, 0, 0);
-          // If keyword is provided, draw it in the top-left corner.
-          if (keyword && ctx) {
-            ctx.font = "16px Arial";
-            ctx.fillStyle = "#000000";
-            // Adjust position as needed
-            ctx.fillText(`Keyword: ${keyword}`, 10, 30);
-          }
+          // Draw the chart image starting at vertical offset equal to extraHeight
+          ctx?.drawImage(img, 0, extraHeight);
           const pngFile = canvas.toDataURL("image/png");
           const downloadLink = document.createElement("a");
           downloadLink.download = "threat_chart.png";
           downloadLink.href = pngFile;
           downloadLink.click();
         };
+
         // Encode the SVG data to base64
         img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
       }
@@ -74,7 +80,6 @@ export default function ThreatChart({ data, keyword }: ThreatChartProps) {
   };
 
   const exportToCsv = (): void => {
-    // Create a CSV header that includes the keyword if provided.
     const keywordHeader = keyword ? `Keyword: ${keyword}\n` : "";
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -101,7 +106,7 @@ export default function ThreatChart({ data, keyword }: ThreatChartProps) {
       <CardContent>
         <div className="h-[400px]" ref={chartRef}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+            <LineChart data={data} margin={{ top: 20, right: 30, left: 60, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tickFormatter={formatXAxis} padding={{ left: 30, right: 30 }}>
                 <Label value="Date" offset={-5} position="insideBottom" />
