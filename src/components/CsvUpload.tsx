@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UploadIcon, AlertCircleIcon, CheckCircleIcon } from "lucide-react";
 
-interface CsvUploadProps {
-  onUpload: (keywords: string[]) => void;
+export interface CsvUploadProps {
+  // onUpload is no longer used externally since the component handles its own state.
 }
 
-export default function CsvUpload({ onUpload }: CsvUploadProps) {
+export default function CsvUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -21,9 +23,13 @@ export default function CsvUpload({ onUpload }: CsvUploadProps) {
     if (selectedFile && selectedFile.type === "text/csv") {
       setFile(selectedFile);
       setError(null);
+      setSuccess(false);
+      setDownloadUrl(null);
     } else {
       setFile(null);
       setError("Please select a valid CSV file.");
+      setSuccess(false);
+      setDownloadUrl(null);
     }
   };
 
@@ -33,23 +39,55 @@ export default function CsvUpload({ onUpload }: CsvUploadProps) {
       return;
     }
 
+    setError(null);
+    setSuccess(false);
+    setProcessing(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
     try {
-      // Read the CSV file as text
-      const csvText = await file.text();
-      // Split the file into lines and extract keywords (trimmed and filtered)
-      const keywords = csvText
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-      // Call the onUpload callback with the keywords
-      onUpload(keywords);
+      const res = await fetch("/api/bulk", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        setError(errData.error || "Error uploading file.");
+        setProcessing(false);
+        return;
+      }
+
+      // Instead of automatically triggering a download,
+      // create a URL for the returned CSV Blob and store it in state.
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setDownloadUrl(url);
       setSuccess(true);
+    } catch {
+      setError("An error occurred while uploading the file.");
+    } finally {
+      setProcessing(false);
       setFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-    } catch {
-      setError("An error occurred while processing the file.");
+    }
+  };
+
+  const handleDownload = (): void => {
+    if (downloadUrl) {
+      // Open the URL in a new tab/window to trigger download.
+      const downloadLink = document.createElement("a");
+      downloadLink.href = downloadUrl;
+      downloadLink.download = "daily_counts.csv";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      // Optionally, revoke the object URL later:
+      // URL.revokeObjectURL(downloadUrl);
+      setDownloadUrl(null); // Clear the URL after download if desired.
     }
   };
 
@@ -63,11 +101,12 @@ export default function CsvUpload({ onUpload }: CsvUploadProps) {
           ref={fileInputRef}
           className="flex-grow"
         />
-        <Button onClick={handleUpload} disabled={!file}>
+        <Button onClick={handleUpload} disabled={!file || processing}>
           <UploadIcon className="mr-2 h-4 w-4" />
           Upload CSV
         </Button>
       </div>
+
       {error && (
         <Alert variant="destructive">
           <AlertCircleIcon className="h-4 w-4" />
@@ -75,14 +114,26 @@ export default function CsvUpload({ onUpload }: CsvUploadProps) {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {success && (
-        <Alert variant="default" className="bg-green-50 border-green-200 text-green-800">
+
+      {processing && (
+        <Alert variant="default" className="mt-4">
+          <AlertTitle>Processing</AlertTitle>
+          <AlertDescription>Upload received, please wait to download results...</AlertDescription>
+        </Alert>
+      )}
+
+      {success && !downloadUrl && !processing && (
+        <Alert variant="default" className="mt-4">
           <CheckCircleIcon className="h-4 w-4 text-green-400" />
           <AlertTitle>Success</AlertTitle>
-          <AlertDescription>
-            CSV file uploaded and processed successfully.
-          </AlertDescription>
+          <AlertDescription>CSV file processed successfully.</AlertDescription>
         </Alert>
+      )}
+
+      {downloadUrl && (
+        <Button className="mt-4" onClick={handleDownload}>
+          Download CSV
+        </Button>
       )}
     </div>
   );
