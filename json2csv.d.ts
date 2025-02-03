@@ -1,33 +1,20 @@
-{
-    "compilerOptions": {
-      "target": "ES2017",
-      "lib": ["dom", "dom.iterable", "esnext"],
-      "allowJs": true,
-      "skipLibCheck": true,
-      "strict": true,
-      "noEmit": true,
-      "esModuleInterop": true,
-      "module": "esnext",
-      "moduleResolution": "bundler",
-      "resolveJsonModule": true,
-      "isolatedModules": true,
-      "jsx": "preserve",
-      "incremental": true,
-      "plugins": [
-        {
-          "name": "next"
-        }
-      ],
-      "paths": {
-        "@/*": ["./src/*"]
-      }
-    },
-    "include": [
-      "next-env.d.ts",
-      "json2csv.d.ts",   // <-- Add this line
-      "**/*.ts",
-      "**/*.tsx",
-      ".next/types/**/*.ts"
-    ],
-    "exclude": ["node_modules"]
+// json2csv.d.ts
+
+declare module "json2csv" {
+    export interface ParserOptions<T = any> {
+      fields?: (keyof T | string)[];
+      delimiter?: string;
+      quote?: string;
+      withBOM?: boolean;
+      header?: boolean;
+      unwind?: string | string[];
+      flatten?: boolean;
+      flattenSeparator?: string;
+      eol?: string;
+    }
+  
+    export class Parser<T = any> {
+      constructor(opts?: ParserOptions<T>);
+      parse(data: T[]): string;
+    }
   }
