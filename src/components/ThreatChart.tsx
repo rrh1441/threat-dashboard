@@ -1,66 +1,74 @@
-"use client"
+"use client";
 
-import { useRef } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from "recharts"
-import { DownloadIcon, ImageIcon } from "lucide-react"
+import { useRef } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from "recharts";
+import { DownloadIcon, ImageIcon } from "lucide-react";
 
 interface ThreatChartProps {
-  data: Array<{ date: string; count: number }>
+  data: Array<{ date: string; count: number }>;
 }
 
-const CustomizedLabel = (props: any) => {
-  const { x, y, value } = props
+interface CustomizedLabelProps {
+  x: number;
+  y: number;
+  value: string | number;
+}
+
+const CustomizedLabel = (props: CustomizedLabelProps) => {
+  const { x, y, value } = props;
   return (
     <text x={x} y={y} dy={-10} fill="#666" fontSize={12} textAnchor="middle">
       {value}
     </text>
-  )
-}
+  );
+};
 
-const formatXAxis = (tickItem: string) => {
-  const date = new Date(tickItem)
-  return `${date.getMonth() + 1}-${date.getDate()}`
-}
+const formatXAxis = (tickItem: string): string => {
+  const date = new Date(tickItem);
+  return `${date.getMonth() + 1}-${date.getDate()}`;
+};
 
 export default function ThreatChart({ data }: ThreatChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<HTMLDivElement>(null);
 
-  const exportToPng = () => {
+  const exportToPng = (): void => {
     if (chartRef.current) {
-      const svgElement = chartRef.current.querySelector("svg")
+      const svgElement = chartRef.current.querySelector("svg");
       if (svgElement) {
-        const svgData = new XMLSerializer().serializeToString(svgElement)
-        const canvas = document.createElement("canvas")
-        const ctx = canvas.getContext("2d")
-        const img = new Image()
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
         img.onload = () => {
-          canvas.width = img.width
-          canvas.height = img.height
-          ctx?.drawImage(img, 0, 0)
-          const pngFile = canvas.toDataURL("image/png")
-          const downloadLink = document.createElement("a")
-          downloadLink.download = "threat_chart.png"
-          downloadLink.href = pngFile
-          downloadLink.click()
-        }
-        img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)))
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          const pngFile = canvas.toDataURL("image/png");
+          const downloadLink = document.createElement("a");
+          downloadLink.download = "threat_chart.png";
+          downloadLink.href = pngFile;
+          downloadLink.click();
+        };
+        img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
       }
     }
-  }
+  };
 
-  const exportToCsv = () => {
+  const exportToCsv = (): void => {
     const csvContent =
-      "data:text/csv;charset=utf-8," + "Date,Count\n" + data.map((row) => `${row.date},${row.count}`).join("\n")
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement("a")
-    link.setAttribute("href", encodedUri)
-    link.setAttribute("download", "threat_data.csv")
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+      "data:text/csv;charset=utf-8," +
+      "Date,Count\n" +
+      data.map((row) => `${row.date},${row.count}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "threat_data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <Card>
@@ -103,6 +111,5 @@ export default function ThreatChart({ data }: ThreatChartProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-

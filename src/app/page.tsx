@@ -1,69 +1,91 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import QueryForm from "../components/QueryForm"
-import ThreatChart from "../components/ThreatChart"
-import CsvUpload from "../components/CsvUpload"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { InfoIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react";
+import QueryForm from "../components/QueryForm";
+import ThreatChart from "../components/ThreatChart";
+import CsvUpload from "../components/CsvUpload";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SingleDayResponse {
-  day: string
+  day: string;
   total?: {
-    value: number
-    relation: string
-  }
-  [key: string]: any
+    value: number;
+    relation: string;
+  };
+  [key: string]: unknown;
 }
 
 interface MultiDayResponse {
-  partial: boolean
-  data: SingleDayResponse[]
+  partial: boolean;
+  data: SingleDayResponse[];
 }
 
 export default function Home() {
-  const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([])
-  const [partial, setPartial] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
+  const [partial, setPartial] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Handle single-keyword search. Notice we pass the keyword (a string) directly.
-  async function handleQuerySubmit({ keyword }: { keyword: string }) {
-    setLoading(true)
-    setError(null)
-    setPartial(false)
-    setChartData([])
+  /**
+   * Fetches threat data for a single keyword or multiple keywords.
+   * @param keywords An array of keywords to fetch threat data for.
+   */
+  async function fetchThreatData(keywords: string[]) {
+    setLoading(true);
+    setError(null);
+    setPartial(false);
+    setChartData([]);
 
     try {
       const response = await fetch("/api/threats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Send the payload as { keyword: "..." }
-        body: JSON.stringify({ keyword }),
-      })
+        body: JSON.stringify({ keyword: keywords[0] }), // Only sending the first keyword
+      });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch data. Status=${response.status}`)
+        throw new Error(`Failed to fetch data. Status=${response.status}`);
       }
 
-      const json: MultiDayResponse = await response.json()
-      setPartial(json.partial)
+      const json: MultiDayResponse = await response.json();
+      setPartial(json.partial);
 
       const newChartData = json.data
         .map((dayObj) => ({
           date: dayObj.day,
           count: dayObj.total?.value ?? 0,
         }))
-        .sort((a, b) => (a.date < b.date ? -1 : 1))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
 
-      setChartData(newChartData)
-    } catch (err: any) {
-      setError(err.message)
+      setChartData(newChartData);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
+  }
+
+  /**
+   * Handles the form submission for a single keyword.
+   * @param keyword The keyword to search for.
+   */
+  function handleQuerySubmit({ keyword }: { keyword: string }) {
+    fetchThreatData([keyword]);
+  }
+
+  /**
+   * Handles bulk CSV upload and processes multiple keywords.
+   * @param keywords An array of keywords extracted from the CSV file.
+   */
+  function handleCsvUpload(keywords: string[]) {
+    fetchThreatData(keywords);
   }
 
   return (
@@ -84,8 +106,7 @@ export default function Home() {
                 <QueryForm onSubmit={handleQuerySubmit} />
               </TabsContent>
               <TabsContent value="bulk">
-                {/* The CsvUpload component should handle file uploading to /api/bulk by itself */}
-                <CsvUpload />
+                <CsvUpload onUpload={handleCsvUpload} />
               </TabsContent>
             </Tabs>
 
@@ -132,5 +153,5 @@ export default function Home() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

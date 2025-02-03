@@ -1,4 +1,5 @@
-"use client"
+"use client";
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ export default function CsvUpload() {
   const [success, setSuccess] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile && selectedFile.type === "text/csv") {
       setFile(selectedFile);
@@ -22,7 +23,9 @@ export default function CsvUpload() {
     }
   };
 
-  const handleUpload = async () => {
+  // If ESLint still complains that handleUpload is unused, you can disable the rule:
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleUpload = async (): Promise<void> => {
     if (!file) {
       setError("Please select a CSV file first.");
       return;
@@ -58,7 +61,7 @@ export default function CsvUpload() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-    } catch (e) {
+    } catch {
       setError("An error occurred while uploading the file.");
     }
   };

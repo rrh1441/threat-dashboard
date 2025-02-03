@@ -55,7 +55,7 @@ async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
 
 export async function POST(req: Request) {
   try {
-    const { keyword } = await req.json() || {};
+    const { keyword } = (await req.json()) || {};
     if (!keyword) {
       return NextResponse.json({ error: "Missing 'keyword'" }, { status: 400 });
     }
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
             relation: "=",
           },
         });
-      } catch (err) {
+      } catch {
         partial = true;
         break;
       }
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ partial, data: dailyResults }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
