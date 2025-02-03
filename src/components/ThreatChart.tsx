@@ -84,7 +84,7 @@ export default function ThreatChart({ data, keyword }: ThreatChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>
-          Deep and Dark Web Mentions of {keyword ? `for "${keyword}"` : ""}
+          Deep and Dark Web Mentions {keyword ? `for "${keyword}"` : ""}
         </CardTitle>
         <CardDescription>Daily count over last 7 days</CardDescription>
       </CardHeader>
