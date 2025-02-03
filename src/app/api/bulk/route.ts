@@ -1,5 +1,3 @@
-// src/app/api/bulk/route.ts
-
 import { NextResponse } from "next/server";
 import { parse as parseCSV } from "papaparse";
 import { Parser as JSON2CSVParser } from "json2csv";
@@ -14,7 +12,7 @@ function getLast7DaysExcludingToday(): string[] {
   const days: string[] = [];
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  now.setDate(now.getDate() - 1); // Exclude today
+  now.setDate(now.getDate() - 1);
 
   for (let i = 6; i >= 0; i--) {
     const temp = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
@@ -95,8 +93,10 @@ export async function POST(request: Request) {
     const days = getLast7DaysExcludingToday();
     const results: Array<Record<string, number | string>> = [];
 
+    // For each keyword in the CSV file
     for (const keyword of keywords) {
       const rowData: Record<string, number | string> = { keyword };
+      // For each day, fetch the threat count and delay 2 seconds after each query
       for (let i = 0; i < days.length; i++) {
         const day = days[i];
         try {
@@ -106,6 +106,8 @@ export async function POST(request: Request) {
           console.error(`Error processing keyword "${keyword}" on ${day}:`, error);
           rowData[`day${i + 1}`] = 0;
         }
+        // 2-second delay to avoid rate limiting
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
       results.push(rowData);
     }

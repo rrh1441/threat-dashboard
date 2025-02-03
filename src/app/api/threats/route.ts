@@ -1,5 +1,3 @@
-// src/app/api/threats/route.ts
-
 import { NextResponse } from "next/server";
 
 function getLast7DaysExcludingToday(): string[] {
@@ -82,7 +80,7 @@ export async function POST(req: Request) {
         break;
       }
 
-      // 2-second delay
+      // 2-second delay to avoid rate limiting
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
