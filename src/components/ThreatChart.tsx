@@ -45,8 +45,8 @@ export default function ThreatChart({ data, keyword }: ThreatChartProps) {
         canvas.height = rect.height;
         const ctx = canvas.getContext("2d");
 
-        // Fill canvas with white background
         if (ctx) {
+          // Fill canvas with white background
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
@@ -54,21 +54,31 @@ export default function ThreatChart({ data, keyword }: ThreatChartProps) {
         const img = new Image();
         img.onload = () => {
           ctx?.drawImage(img, 0, 0);
+          // If keyword is provided, draw it in the top-left corner.
+          if (keyword && ctx) {
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#000000";
+            // Adjust position as needed
+            ctx.fillText(`Keyword: ${keyword}`, 10, 30);
+          }
           const pngFile = canvas.toDataURL("image/png");
           const downloadLink = document.createElement("a");
           downloadLink.download = "threat_chart.png";
           downloadLink.href = pngFile;
           downloadLink.click();
         };
-        // Create a data URL with proper encoding
+        // Encode the SVG data to base64
         img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
       }
     }
   };
 
   const exportToCsv = (): void => {
+    // Create a CSV header that includes the keyword if provided.
+    const keywordHeader = keyword ? `Keyword: ${keyword}\n` : "";
     const csvContent =
       "data:text/csv;charset=utf-8," +
+      keywordHeader +
       "Date,Count\n" +
       data.map((row) => `${row.date},${row.count}`).join("\n");
     const encodedUri = encodeURI(csvContent);
