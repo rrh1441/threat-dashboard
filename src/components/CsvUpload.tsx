@@ -6,7 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UploadIcon, AlertCircleIcon, CheckCircleIcon } from "lucide-react";
 
-export default function CsvUpload() {
+interface CsvUploadProps {
+  onUpload: (keywords: string[]) => void;
+}
+
+export default function CsvUpload({ onUpload }: CsvUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
@@ -23,46 +27,29 @@ export default function CsvUpload() {
     }
   };
 
-  // If ESLint still complains that handleUpload is unused, you can disable the rule:
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleUpload = async (): Promise<void> => {
     if (!file) {
       setError("Please select a CSV file first.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const res = await fetch("/api/bulk", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        setError(errData.error || "Error uploading file.");
-        return;
-      }
-
-      // Process the response as a Blob to trigger a download.
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement("a");
-      downloadLink.href = url;
-      downloadLink.download = "daily_counts.csv";
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-
+      // Read the CSV file as text
+      const csvText = await file.text();
+      // Split the file into lines and extract keywords (trimmed and filtered)
+      const keywords = csvText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      // Call the onUpload callback with the keywords
+      onUpload(keywords);
       setSuccess(true);
       setFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     } catch {
-      setError("An error occurred while uploading the file.");
+      setError("An error occurred while processing the file.");
     }
   };
 
