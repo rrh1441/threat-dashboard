@@ -28,8 +28,10 @@ export default function Home() {
   const [partial, setPartial] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentKeyword, setCurrentKeyword] = useState<string>("");
 
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
+    setCurrentKeyword(keyword);
     setLoading(true);
     setError(null);
     setPartial(false);
@@ -73,7 +75,9 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-gray-900">Threat Intelligence Dashboard</CardTitle>
+            <CardTitle className="text-3xl font-bold text-gray-900">
+              Threat Intelligence Dashboard {currentKeyword && `for "${currentKeyword}"`}
+            </CardTitle>
             <CardDescription>Analyze threat data for the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
@@ -86,7 +90,7 @@ export default function Home() {
                 <QueryForm onSubmit={handleQuerySubmit} />
               </TabsContent>
               <TabsContent value="bulk">
-                {/* Remove onUpload prop since CsvUpload now manages its own upload */}
+                {/* Bulk upload is now self-contained */}
                 <CsvUpload />
               </TabsContent>
             </Tabs>
@@ -117,7 +121,7 @@ export default function Home() {
 
             {chartData.length > 0 && (
               <div className="mt-8">
-                <ThreatChart data={chartData} />
+                <ThreatChart data={chartData} keyword={currentKeyword} />
               </div>
             )}
 

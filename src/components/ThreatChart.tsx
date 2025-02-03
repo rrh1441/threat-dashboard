@@ -3,20 +3,12 @@
 import { useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Label,
-} from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from "recharts";
 import { DownloadIcon, ImageIcon } from "lucide-react";
 
 interface ThreatChartProps {
   data: Array<{ date: string; count: number }>;
+  keyword?: string;
 }
 
 interface CustomizedLabelProps {
@@ -28,7 +20,7 @@ interface CustomizedLabelProps {
 const CustomizedLabel = (props: CustomizedLabelProps) => {
   const { x, y, value } = props;
   return (
-    <text x={x} y={y} dy={-10} fill="#666" fontSize={12} textAnchor="middle">
+    <text x={x} y={y} dy={-10} fill="#000" fontSize={12} textAnchor="middle">
       {value}
     </text>
   );
@@ -39,7 +31,7 @@ const formatXAxis = (tickItem: string): string => {
   return `${date.getMonth() + 1}-${date.getDate()}`;
 };
 
-export default function ThreatChart({ data }: ThreatChartProps) {
+export default function ThreatChart({ data, keyword }: ThreatChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const exportToPng = (): void => {
@@ -48,11 +40,19 @@ export default function ThreatChart({ data }: ThreatChartProps) {
       if (svgElement) {
         const svgData = new XMLSerializer().serializeToString(svgElement);
         const canvas = document.createElement("canvas");
+        const rect = svgElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
         const ctx = canvas.getContext("2d");
+
+        // Fill canvas with white background
+        if (ctx) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
         const img = new Image();
         img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
           ctx?.drawImage(img, 0, 0);
           const pngFile = canvas.toDataURL("image/png");
           const downloadLink = document.createElement("a");
@@ -60,6 +60,7 @@ export default function ThreatChart({ data }: ThreatChartProps) {
           downloadLink.href = pngFile;
           downloadLink.click();
         };
+        // Create a data URL with proper encoding
         img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
       }
     }
@@ -82,7 +83,9 @@ export default function ThreatChart({ data }: ThreatChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Threat Occurrences</CardTitle>
+        <CardTitle>
+          Threat Occurrences {keyword ? `for "${keyword}"` : ""}
+        </CardTitle>
         <CardDescription>Daily count of threat occurrences over the last 7 days</CardDescription>
       </CardHeader>
       <CardContent>
@@ -103,7 +106,6 @@ export default function ThreatChart({ data }: ThreatChartProps) {
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={{ r: 4 }}
-                // Instead of passing <CustomizedLabel />, we pass a function
                 label={(props) => <CustomizedLabel {...(props as CustomizedLabelProps)} />}
               />
             </LineChart>
