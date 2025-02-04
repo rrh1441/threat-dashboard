@@ -3,7 +3,10 @@
 import { useState } from "react";
 import QueryForm from "../components/QueryForm";
 import ThreatChart from "../components/ThreatChart";
+// Existing CSV upload for Communities
 import CsvUpload from "../components/CsvUpload";
+// New CSV upload component for Markets; you must implement this similarly to CsvUpload.
+import CsvUploadMarkets from "../components/CsvUploadMarkets"; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react";
@@ -81,17 +84,23 @@ export default function Home() {
             <CardDescription>Analyze threat data for the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Now we have three tabs */}
             <Tabs defaultValue="single">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="single">Single Keyword</TabsTrigger>
-                <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
+                <TabsTrigger value="bulk-communities">Bulk Search – Communities</TabsTrigger>
+                <TabsTrigger value="bulk-markets">Bulk Search – Markets</TabsTrigger>
               </TabsList>
               <TabsContent value="single">
                 <QueryForm onSubmit={handleQuerySubmit} />
               </TabsContent>
-              <TabsContent value="bulk">
-                {/* Bulk upload is now self-contained */}
+              <TabsContent value="bulk-communities">
+                {/* The existing CsvUpload component is used for Communities */}
                 <CsvUpload />
+              </TabsContent>
+              <TabsContent value="bulk-markets">
+                {/* Render a new component for Markets bulk search */}
+                <CsvUploadMarkets />
               </TabsContent>
             </Tabs>
 
