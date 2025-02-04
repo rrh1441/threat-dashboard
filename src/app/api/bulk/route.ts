@@ -97,14 +97,14 @@ export async function POST(request: Request) {
     for (const keyword of keywords) {
       const rowData: Record<string, number | string> = { keyword };
       // For each day, fetch the threat count and delay 250ms after each query
-      for (let i = 0; i < days.length; i++) {
-        const day = days[i];
+      // Use the actual day string as the key so that it matches the header
+      for (const day of days) {
         try {
           const count = await fetchDailyTotal(keyword, day);
-          rowData[`day${i + 1}`] = count;
+          rowData[day] = count;
         } catch (error) {
           console.error(`Error processing keyword "${keyword}" on ${day}:`, error);
-          rowData[`day${i + 1}`] = 0;
+          rowData[day] = 0;
         }
         // 250ms delay to avoid rate limiting (adjust if necessary)
         await new Promise((resolve) => setTimeout(resolve, 250));
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       results.push(rowData);
     }
 
-    // Use the actual dates in the CSV header instead of generic names
+    // Build header fields using the actual dates
     const fields = ["keyword", ...days];
     const json2csvParser = new JSON2CSVParser({ fields });
     const outputCsv = json2csvParser.parse(results);
