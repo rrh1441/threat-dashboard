@@ -25,7 +25,6 @@ function getLast7DaysExcludingToday(): string[] {
 
 /**
  * Constructs the payload for the Markets API query.
- * This is similar to your other query but uses the same date range.
  */
 function buildDailyPayload(keyword: string, day: string) {
   return {
@@ -54,7 +53,7 @@ async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      // If Markets API requires a key and it's different, use:
+      // Use MARKETS_API_KEY if defined; otherwise fall back to THREAT_API_KEY.
       Authorization: `Bearer ${process.env.MARKETS_API_KEY || process.env.THREAT_API_KEY}`,
     },
     body: JSON.stringify(payload),
@@ -74,7 +73,8 @@ async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
  *
  * Expects a multipart/form-data POST with a file field named "file".
  * The CSV file should contain one keyword per row (first column).
- * Returns a CSV file as an attachment with daily counts for each keyword.
+ * Returns a CSV file as an attachment with daily counts for each keyword,
+ * and replaces the header row to show actual dates.
  */
 export async function POST(request: Request) {
   try {
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     // For each keyword in the CSV file
     for (const keyword of keywords) {
       const rowData: Record<string, number | string> = { keyword };
-      // For each day, fetch the threat count (with a delay if needed)
+      // For each day, fetch the count using the internal key "day1", "day2", etc.
       for (let i = 0; i < days.length; i++) {
         const day = days[i];
         try {
@@ -113,17 +113,31 @@ export async function POST(request: Request) {
           console.error(`Error processing keyword "${keyword}" on ${day}:`, error);
           rowData[`day${i + 1}`] = 0;
         }
-        // 2-second delay (modify this value to change the delay)
+        // Delay between calls (adjust delay value as needed)
         await new Promise((resolve) => setTimeout(resolve, 250));
       }
       results.push(rowData);
     }
 
+    // Build header fields using the internal keys
     const fields = ["keyword", ...days.map((_, i) => `day${i + 1}`)];
     const json2csvParser = new JSON2CSVParser({ fields });
     const outputCsv = json2csvParser.parse(results);
 
-    return new Response(outputCsv, {
+    // --- Post-process the CSV header ---
+    // Replace "day1", "day2", etc. in the header row with the actual date strings.
+    const csvLines = outputCsv.split("\n");
+    if (csvLines.length > 0) {
+      const headerColumns = csvLines[0].split(",");
+      for (let i = 0; i < days.length; i++) {
+        headerColumns[i + 1] = days[i];
+      }
+      csvLines[0] = headerColumns.join(",");
+    }
+    const finalCsv = csvLines.join("\n");
+    // -------------------------------------
+
+    return new Response(finalCsv, {
       status: 200,
       headers: {
         "Content-Type": "text/csv",
