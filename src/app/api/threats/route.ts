@@ -81,7 +81,7 @@ export async function POST(req: Request) {
       }
 
       // 2-second delay to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     return NextResponse.json({ partial, data: dailyResults }, { status: 200 });

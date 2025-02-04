@@ -107,7 +107,7 @@ export async function POST(request: Request) {
           rowData[`day${i + 1}`] = 0;
         }
         // 2-second delay to avoid rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
       results.push(rowData);
     }
