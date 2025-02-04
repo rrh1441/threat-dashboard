@@ -3,10 +3,8 @@
 import { useState } from "react";
 import QueryForm from "../components/QueryForm";
 import ThreatChart from "../components/ThreatChart";
-// Existing CSV upload for Communities
-import CsvUpload from "../components/CsvUpload";
-// New CSV upload component for Markets; you must implement this similarly to CsvUpload.
-import CsvUploadMarkets from "../components/CsvUploadMarkets"; 
+import CsvUpload from "../components/CsvUpload"; // Bulk Search – Communities
+import CsvUploadMarkets from "../components/CsvUploadMarkets"; // Bulk Search – Markets
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react";
@@ -33,6 +31,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [currentKeyword, setCurrentKeyword] = useState<string>("");
 
+  // Search using the Threats endpoint (Keyword tab)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -73,6 +72,49 @@ export default function Home() {
     }
   }
 
+  // Search using the Credentials endpoint (Domain tab)
+  async function handleDomainSubmit({ keyword }: { keyword: string }): Promise<void> {
+    setCurrentKeyword(keyword);
+    setLoading(true);
+    setError(null);
+    setPartial(false);
+    setChartData([]);
+
+    try {
+      // Call the credentials endpoint
+      const response = await fetch("/api/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Here we send { keyword } as additional search terms for credential sightings.
+        body: JSON.stringify({ keyword }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch domain data. Status=${response.status}`);
+      }
+
+      const json: MultiDayResponse = await response.json();
+      setPartial(json.partial);
+
+      const newChartData = json.data
+        .map((dayObj) => ({
+          date: dayObj.day,
+          count: dayObj.total?.value ?? 0,
+        }))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+      setChartData(newChartData);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -84,22 +126,31 @@ export default function Home() {
             <CardDescription>Analyze threat data for the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Now we have three tabs */}
-            <Tabs defaultValue="single">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="single">Single Keyword</TabsTrigger>
-                <TabsTrigger value="bulk-communities">Bulk Search – Communities</TabsTrigger>
-                <TabsTrigger value="bulk-markets">Bulk Search – Markets</TabsTrigger>
+            <Tabs defaultValue="keyword">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="keyword" className="data-[state=active]:bg-gray-200">
+                  Keyword
+                </TabsTrigger>
+                <TabsTrigger value="domain" className="data-[state=active]:bg-gray-200">
+                  Domain
+                </TabsTrigger>
+                <TabsTrigger value="bulk-communities" className="data-[state=active]:bg-gray-200">
+                  Bulk Search – Communities
+                </TabsTrigger>
+                <TabsTrigger value="bulk-markets" className="data-[state=active]:bg-gray-200">
+                  Bulk Search – Markets
+                </TabsTrigger>
               </TabsList>
-              <TabsContent value="single">
-                <QueryForm onSubmit={handleQuerySubmit} />
+              <TabsContent value="keyword">
+                <QueryForm onSubmit={handleQuerySubmit} placeholder="Enter keyword..." />
+              </TabsContent>
+              <TabsContent value="domain">
+                <QueryForm onSubmit={handleDomainSubmit} placeholder="Enter domain..." />
               </TabsContent>
               <TabsContent value="bulk-communities">
-                {/* The existing CsvUpload component is used for Communities */}
                 <CsvUpload />
               </TabsContent>
               <TabsContent value="bulk-markets">
-                {/* Render a new component for Markets bulk search */}
                 <CsvUploadMarkets />
               </TabsContent>
             </Tabs>
@@ -139,7 +190,7 @@ export default function Home() {
                 <InfoIcon className="h-4 w-4" />
                 <AlertTitle>No Data</AlertTitle>
                 <AlertDescription>
-                  Enter a keyword or upload a CSV file to start analyzing threat data.
+                  Enter a keyword/domain or upload a CSV file to start analyzing threat data.
                 </AlertDescription>
               </Alert>
             )}
