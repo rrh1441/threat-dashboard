@@ -1,5 +1,3 @@
-// src/app/api/credentials/route.ts
-
 import { NextResponse } from "next/server";
 
 /**
@@ -20,18 +18,20 @@ function getLast7DaysExcludingToday(): string[] {
 /**
  * Constructs the payload for the Credentials API query.
  *
- * This builds a payload that includes your base query for credentials
- * (using +basetypes:(credential-sighting)) and sets a date range for the given day.
- *
- * The provided keyword (from the client) is appended to the query, so that you can
- * further refine the search if needed.
+ * This payload uses:
+ * - page: 0, size: 0 so that no individual hits are returned,
+ * - highlight enabled,
+ * - include_total set to true to get only the total count,
+ * - a base query for credential sightings plus any additional keyword terms.
+ * - a date range for the day.
  */
 function buildDailyPayload(keyword: string, day: string) {
   return {
     page: 0,
     size: 0,
     highlight: { enabled: true },
-    // Base query for credential sightings plus any additional keyword terms
+    include_total: true, // Ensure only totals are returned
+    // Base query for credential sightings plus additional keyword terms
     query: `+basetypes:(credential-sighting) ${keyword}`,
     include: {
       date: {
@@ -44,11 +44,11 @@ function buildDailyPayload(keyword: string, day: string) {
 
 /**
  * Calls the Credentials API for a given keyword and day.
- * Returns the count as a number.
+ * Returns the total count as a number.
  */
 async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
   const payload = buildDailyPayload(keyword, day);
-
+  
   const apiResponse = await fetch(process.env.CREDENTIALS_API_URL as string, {
     method: "POST",
     headers: {
@@ -66,6 +66,11 @@ async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
   }
 
   const data = await apiResponse.json();
+  // Based on your documentation, the API returns an object with a "hits" key that includes "total".
+  if (data.hits && typeof data.hits.total === "number") {
+    return data.hits.total;
+  }
+  // Fallback in case the total is in a different structure
   return data?.total?.value ?? 0;
 }
 
@@ -75,7 +80,7 @@ async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
  * Expects a JSON POST with a { keyword } body.
  * Iterates over the last 7 days and returns an array of objects,
  * each with a day and its corresponding total count.
- * (A delay is used between each API call to avoid rate limiting.)
+ * A delay is applied between each API call to avoid rate limiting.
  */
 export async function POST(req: Request) {
   try {
@@ -88,7 +93,7 @@ export async function POST(req: Request) {
     let partial = false;
     const dailyResults: Array<{ day: string; total: { value: number; relation: string } }> = [];
 
-    // For each day, fetch the count from the Credentials API.
+    // Loop over each day and fetch the total count
     for (const day of days) {
       try {
         const count = await fetchDailyTotal(keyword, day);
@@ -103,8 +108,7 @@ export async function POST(req: Request) {
         partial = true;
         break;
       }
-
-      // Delay between API calls (adjust the delay value as needed)
+      // Delay between calls to avoid rate limiting (adjust the delay as needed)
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
