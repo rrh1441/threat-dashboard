@@ -31,7 +31,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [currentKeyword, setCurrentKeyword] = useState<string>("");
 
-  // Search using the Threats endpoint (Keyword tab)
+  // For the Keyword search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -72,7 +72,7 @@ export default function Home() {
     }
   }
 
-  // Search using the Credentials endpoint (Domain tab)
+  // For the Domain search (calls /api/credentials)
   async function handleDomainSubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -81,11 +81,10 @@ export default function Home() {
     setChartData([]);
 
     try {
-      // Call the credentials endpoint
       const response = await fetch("/api/credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Here we send { keyword } as additional search terms for credential sightings.
+        // Adjust the body as needed if your endpoint expects { domain } instead of { keyword }
         body: JSON.stringify({ keyword }),
       });
 

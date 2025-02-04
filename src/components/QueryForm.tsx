@@ -1,21 +1,22 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { SearchIcon } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SearchIcon } from "lucide-react";
 
-interface QueryFormProps {
-  onSubmit: (data: { keyword: string }) => void
+export interface QueryFormProps {
+  onSubmit: (data: { keyword: string }) => void;
+  placeholder?: string;
 }
 
-export default function QueryForm({ onSubmit }: QueryFormProps) {
-  const [keyword, setKeyword] = useState("")
+export default function QueryForm({ onSubmit, placeholder }: QueryFormProps) {
+  const [keyword, setKeyword] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit({ keyword })
-  }
+    e.preventDefault();
+    onSubmit({ keyword });
+  };
 
   return (
     <form onSubmit={handleSubmit} className="flex space-x-2">
@@ -23,7 +24,7 @@ export default function QueryForm({ onSubmit }: QueryFormProps) {
         type="text"
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
-        placeholder="Enter keyword..."
+        placeholder={placeholder || "Enter keyword..."}
         className="flex-grow"
       />
       <Button type="submit" disabled={!keyword.trim()}>
@@ -31,6 +32,5 @@ export default function QueryForm({ onSubmit }: QueryFormProps) {
         Search
       </Button>
     </form>
-  )
+  );
 }
-
