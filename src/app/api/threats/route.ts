@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         break;
       }
 
-      // 2-second delay to avoid rate limiting
+      // quarter-second delay to avoid rate limiting
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 

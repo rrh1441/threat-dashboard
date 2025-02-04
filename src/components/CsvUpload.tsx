@@ -37,8 +37,8 @@ export default function CsvUpload() {
     // Read CSV file as text and count non-empty lines
     const csvText = await file.text();
     const lines = csvText.split("\n").filter((line) => line.trim() !== "");
-    if (lines.length > 10) {
-      setWarning("Warning: Please do not upload a CSV with more than 10 lines.");
+    if (lines.length > 80) {
+      setWarning("Warning: Please do not upload a CSV with more than 80 lines.");
       return;
     }
 
