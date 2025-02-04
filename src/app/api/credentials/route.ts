@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       }
 
       // Delay between API calls (adjust the delay value as needed)
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
     return NextResponse.json({ partial, data: dailyResults }, { status: 200 });
