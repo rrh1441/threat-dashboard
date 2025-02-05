@@ -31,7 +31,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [currentKeyword, setCurrentKeyword] = useState<string>("");
 
-  // For the Keyword search (calls /api/threats)
+  // For Keyword search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -72,48 +72,6 @@ export default function Home() {
     }
   }
 
-  // For the Domain search (calls /api/credentials)
-  async function handleDomainSubmit({ keyword }: { keyword: string }): Promise<void> {
-    setCurrentKeyword(keyword);
-    setLoading(true);
-    setError(null);
-    setPartial(false);
-    setChartData([]);
-
-    try {
-      const response = await fetch("/api/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // Adjust the body as needed if your endpoint expects { domain } instead of { keyword }
-        body: JSON.stringify({ keyword }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch domain data. Status=${response.status}`);
-      }
-
-      const json: MultiDayResponse = await response.json();
-      setPartial(json.partial);
-
-      const newChartData = json.data
-        .map((dayObj) => ({
-          date: dayObj.day,
-          count: dayObj.total?.value ?? 0,
-        }))
-        .sort((a, b) => (a.date < b.date ? -1 : 1));
-
-      setChartData(newChartData);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -126,12 +84,9 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="keyword">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="keyword" className="data-[state=active]:bg-gray-200">
                   Keyword
-                </TabsTrigger>
-                <TabsTrigger value="domain" className="data-[state=active]:bg-gray-200">
-                  Domain
                 </TabsTrigger>
                 <TabsTrigger value="bulk-communities" className="data-[state=active]:bg-gray-200">
                   Bulk Search – Communities
@@ -142,9 +97,6 @@ export default function Home() {
               </TabsList>
               <TabsContent value="keyword">
                 <QueryForm onSubmit={handleQuerySubmit} placeholder="Enter keyword..." />
-              </TabsContent>
-              <TabsContent value="domain">
-                <QueryForm onSubmit={handleDomainSubmit} placeholder="Enter domain..." />
               </TabsContent>
               <TabsContent value="bulk-communities">
                 <CsvUpload />
@@ -189,7 +141,7 @@ export default function Home() {
                 <InfoIcon className="h-4 w-4" />
                 <AlertTitle>No Data</AlertTitle>
                 <AlertDescription>
-                  Enter a keyword/domain or upload a CSV file to start analyzing threat data.
+                  Enter a keyword or upload a CSV file to start analyzing threat data.
                 </AlertDescription>
               </Alert>
             )}
