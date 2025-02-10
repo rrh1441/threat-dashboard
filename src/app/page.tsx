@@ -3,8 +3,8 @@
 import { useState } from "react";
 import QueryForm from "../components/QueryForm";
 import ThreatChart from "../components/ThreatChart";
-import CsvUpload from "../components/CsvUpload"; // Bulk Search – Communities
-import CsvUploadMarkets from "../components/CsvUploadMarkets"; // Bulk Search – Markets
+import CsvUpload from "../components/CsvUpload"; // Bulk Search – Communities (7d)
+import CsvUploadMarkets from "../components/CsvUploadMarkets"; // Bulk Search – Marketplaces (7d)
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react";
@@ -31,7 +31,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [currentKeyword, setCurrentKeyword] = useState<string>("");
 
-  // For the Keyword (7d) search (calls /api/threats)
+  // For Keyword (7d) search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -45,21 +45,17 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword }),
       });
-
       if (!response.ok) {
         throw new Error(`Failed to fetch data. Status=${response.status}`);
       }
-
       const json: MultiDayResponse = await response.json();
       setPartial(json.partial);
-
       const newChartData = json.data
         .map((dayObj) => ({
           date: dayObj.day,
           count: dayObj.total?.value ?? 0,
         }))
         .sort((a, b) => (a.date < b.date ? -1 : 1));
-
       setChartData(newChartData);
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -72,7 +68,43 @@ export default function Home() {
     }
   }
 
-  // For the Keyword (365d) search (calls /api/yearly)
+  // For Keyword - Monthly search (calls /api/monthly)
+  async function handleMonthlySubmit({ keyword }: { keyword: string }): Promise<void> {
+    setCurrentKeyword(keyword);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/monthly", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch monthly data. Status=${response.status}`);
+      }
+      // Read response as a blob and trigger a download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = "monthly_counts.csv";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // For Keyword (365d) search (calls /api/yearly)
   async function handleAnnualSubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -84,11 +116,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword }),
       });
-
       if (!response.ok) {
         throw new Error(`Failed to fetch annual data. Status=${response.status}`);
       }
-
       // Read response as a blob and trigger a download
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -122,9 +152,12 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="keyword">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="keyword" className="data-[state=active]:bg-gray-200">
                   Keyword (7d)
+                </TabsTrigger>
+                <TabsTrigger value="monthly" className="data-[state=active]:bg-gray-200">
+                  Keyword - Monthly
                 </TabsTrigger>
                 <TabsTrigger value="annual" className="data-[state=active]:bg-gray-200">
                   Keyword (365d)
@@ -138,6 +171,9 @@ export default function Home() {
               </TabsList>
               <TabsContent value="keyword">
                 <QueryForm onSubmit={handleQuerySubmit} placeholder="Enter keyword..." />
+              </TabsContent>
+              <TabsContent value="monthly">
+                <QueryForm onSubmit={handleMonthlySubmit} placeholder="Enter keyword for monthly search..." />
               </TabsContent>
               <TabsContent value="annual">
                 <QueryForm onSubmit={handleAnnualSubmit} placeholder="Enter keyword for annual search..." />
