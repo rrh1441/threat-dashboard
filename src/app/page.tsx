@@ -118,7 +118,7 @@ export default function Home() {
             <CardTitle className="text-3xl font-bold text-gray-900">
               Threat Intelligence Dashboard {currentKeyword && `for "${currentKeyword}"`}
             </CardTitle>
-            <CardDescription>Analyze threat data for the last 7 days</CardDescription>
+            <CardDescription>FP Deep and Dark Web Results</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="keyword">
@@ -153,7 +153,7 @@ export default function Home() {
             {loading && (
               <div className="flex items-center justify-center space-x-2 text-blue-600 mt-4">
                 <LoaderIcon className="animate-spin" />
-                <p>Loading data (Please wait ~15 seconds for results)...</p>
+                <p>Loading data (Please wait ~3 minutes for results)...</p>
               </div>
             )}
 
