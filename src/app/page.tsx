@@ -1,142 +1,142 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import QueryForm from "../components/QueryForm"
-import ThreatChart from "../components/ThreatChart"
-import CsvUpload from "../components/CsvUpload" // Bulk Search – Communities (7d)
-import CsvUploadMarkets from "../components/CsvUploadMarkets" // Bulk Search – Marketplaces (7d)
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { InfoIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from 'react';
+import QueryForm from '../components/QueryForm';
+import ThreatChart from '../components/ThreatChart';
+import CsvUpload from '../components/CsvUpload'; // Bulk Search – Communities (7d)
+import CsvUploadMarkets from '../components/CsvUploadMarkets'; // Bulk Search – Marketplaces (7d)
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { InfoIcon, AlertTriangleIcon, LoaderIcon } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface SingleDayResponse {
-  day: string
+  day: string;
   total?: {
-    value: number
-    relation: string
-  }
-  [key: string]: unknown
+    value: number;
+    relation: string;
+  };
+  [key: string]: unknown;
 }
 
 interface MultiDayResponse {
-  partial: boolean
-  data: SingleDayResponse[]
+  partial: boolean;
+  data: SingleDayResponse[];
 }
 
-export default function Home() {
-  const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([])
-  const [partial, setPartial] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [currentKeyword, setCurrentKeyword] = useState<string>("")
+export default function Home(): JSX.Element {
+  const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
+  const [partial, setPartial] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentKeyword, setCurrentKeyword] = useState<string>('');
 
   // For Keyword (7d) search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
-    setCurrentKeyword(keyword)
-    setLoading(true)
-    setError(null)
-    setPartial(false)
-    setChartData([])
+    setCurrentKeyword(keyword);
+    setLoading(true);
+    setError(null);
+    setPartial(false);
+    setChartData([]);
 
     try {
-      const response = await fetch("/api/threats", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/threats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyword }),
-      })
+      });
       if (!response.ok) {
-        throw new Error(`Failed to fetch data. Status=${response.status}`)
+        throw new Error(`Failed to fetch data. Status=${response.status}`);
       }
-      const json: MultiDayResponse = await response.json()
-      setPartial(json.partial)
+      const json: MultiDayResponse = await response.json();
+      setPartial(json.partial);
       const newChartData = json.data
         .map((dayObj) => ({
           date: dayObj.day,
           count: dayObj.total?.value ?? 0,
         }))
-        .sort((a, b) => (a.date < b.date ? -1 : 1))
-      setChartData(newChartData)
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      setChartData(newChartData);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message)
+        setError(err.message);
       } else {
-        setError("An unknown error occurred.")
+        setError('An unknown error occurred.');
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   // For Keyword - Monthly search (calls /api/monthly)
   async function handleMonthlySubmit({ keyword }: { keyword: string }): Promise<void> {
-    setCurrentKeyword(keyword)
-    setLoading(true)
-    setError(null)
+    setCurrentKeyword(keyword);
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch("/api/monthly", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/monthly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyword }),
-      })
+      });
       if (!response.ok) {
-        throw new Error(`Failed to fetch monthly data. Status=${response.status}`)
+        throw new Error(`Failed to fetch monthly data. Status=${response.status}`);
       }
       // Read response as a blob and trigger a download
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const downloadLink = document.createElement("a")
-      downloadLink.href = url
-      downloadLink.download = "monthly_counts.csv"
-      document.body.appendChild(downloadLink)
-      downloadLink.click()
-      document.body.removeChild(downloadLink)
-      URL.revokeObjectURL(url)
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = 'monthly_counts.csv';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message)
+        setError(err.message);
       } else {
-        setError("An unknown error occurred.")
+        setError('An unknown error occurred.');
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   // For Keyword (365d) search (calls /api/yearly)
   async function handleAnnualSubmit({ keyword }: { keyword: string }): Promise<void> {
-    setCurrentKeyword(keyword)
-    setLoading(true)
-    setError(null)
+    setCurrentKeyword(keyword);
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch("/api/yearly", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/yearly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyword }),
-      })
+      });
       if (!response.ok) {
-        throw new Error(`Failed to fetch annual data. Status=${response.status}`)
+        throw new Error(`Failed to fetch annual data. Status=${response.status}`);
       }
       // Read response as a blob and trigger a download
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const downloadLink = document.createElement("a")
-      downloadLink.href = url
-      downloadLink.download = "annual_counts.csv"
-      document.body.appendChild(downloadLink)
-      downloadLink.click()
-      document.body.removeChild(downloadLink)
-      URL.revokeObjectURL(url)
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = 'annual_counts.csv';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message)
+        setError(err.message);
       } else {
-        setError("An unknown error occurred.")
+        setError('An unknown error occurred.');
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -147,8 +147,12 @@ export default function Home() {
           <CardHeader className="bg-gray-50 border-b border-gray-200">
             <CardTitle className="text-3xl font-bold text-gray-900">Threat Intelligence Dashboard</CardTitle>
             <CardDescription className="text-gray-600">
-              FP Deep and Dark Web Results{" "}
-              {currentKeyword && <span className="font-semibold">for "{currentKeyword}"</span>}
+              FP Deep and Dark Web Results{' '}
+              {currentKeyword && (
+                <span className="font-semibold">
+                  for &quot;{currentKeyword}&quot;
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -243,6 +247,5 @@ export default function Home() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
-
