@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactElement } from 'react';
 import { useState } from 'react';
 import QueryForm from '../components/QueryForm';
 import ThreatChart from '../components/ThreatChart';
@@ -24,7 +25,7 @@ interface MultiDayResponse {
   data: SingleDayResponse[];
 }
 
-export default function Home(): JSX.Element {
+export default function Home(): ReactElement {
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [partial, setPartial] = useState(false);
   const [loading, setLoading] = useState(false);
