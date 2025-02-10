@@ -7,20 +7,18 @@ import { Parser as JSON2CSVParser } from "json2csv";
 function getLast365DaysExcludingToday(): string[] {
   const days: string[] = [];
   const now = new Date();
-  // Zero out the time and exclude today.
+  // Zero out time and exclude today.
   now.setHours(0, 0, 0, 0);
   now.setDate(now.getDate() - 1);
   for (let i = 0; i < 365; i++) {
     const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     days.push(day.toISOString().split("T")[0]);
   }
-  // Reverse so the oldest day comes first
   return days.reverse();
 }
 
 /**
  * Constructs the payload for your API query.
- * (This is the same structure as in your threats route.)
  */
 function buildDailyPayload(keyword: string, day: string) {
   return {
@@ -69,10 +67,8 @@ async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
  *
  * Expects a JSON POST with a { keyword } body.
  * Iterates over the last 365 days, calls the API for each day,
- * and builds a CSV where the internal keys are used for processing,
- * but the header row is replaced with the actual date strings.
- *
- * A delay (currently 250ms) is applied between each API call to help avoid rate limiting.
+ * and builds a CSV where the header row is replaced with the actual date strings.
+ * A delay of 250ms is applied between API calls.
  */
 export async function POST(req: Request) {
   try {
@@ -82,8 +78,6 @@ export async function POST(req: Request) {
     }
 
     const days = getLast365DaysExcludingToday();
-    let partial = false;
-    // Build a single row using internal keys "day1", "day2", ... for each day
     const resultRow: Record<string, number | string> = { keyword };
 
     for (let i = 0; i < days.length; i++) {
@@ -93,10 +87,9 @@ export async function POST(req: Request) {
         resultRow[`day${i + 1}`] = count;
       } catch (error) {
         console.error(`Error processing keyword "${keyword}" on ${day}:`, error);
-        partial = true;
         resultRow[`day${i + 1}`] = 0;
       }
-      // Delay between calls (adjust the delay value as needed)
+      // 250ms delay to help avoid rate limiting (adjust as needed)
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
@@ -105,7 +98,7 @@ export async function POST(req: Request) {
     const json2csvParser = new JSON2CSVParser({ fields });
     const rawCsv = json2csvParser.parse([resultRow]);
 
-    // Post-process the CSV header to replace "day1", "day2", etc. with the actual date strings.
+    // Post-process header: replace "day1", "day2", etc. with the actual date strings.
     const csvLines = rawCsv.split("\n");
     if (csvLines.length > 0) {
       const headerColumns = csvLines[0].split(",");
