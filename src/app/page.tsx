@@ -32,6 +32,27 @@ export default function Home(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [currentKeyword, setCurrentKeyword] = useState<string>('');
 
+  // Track which tab is active so we can show the correct loading message
+  const [activeTab, setActiveTab] = useState('keyword');
+
+  // Helper to provide different loading messages per tab
+  function getLoadingMessage(tab: string): string {
+    switch (tab) {
+      case 'keyword':
+        return 'Loading data (Please wait ~5s for results)...';
+      case 'monthly':
+        return 'Loading data (Please wait ~10s for results)...';
+      case 'annual':
+        return 'Loading data (Please wait ~3 minutes for results)...';
+      case 'bulk-communities':
+        return 'Loading data (Please wait ~5 minutes for results)...';
+      case 'bulk-markets':
+        return 'Loading data (Please wait ~5 minutes for results)...';
+      default:
+        return 'Loading data...';
+    }
+  }
+
   // For Keyword (7d) search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
@@ -69,7 +90,7 @@ export default function Home(): ReactElement {
     }
   }
 
-  // For Keyword - Monthly search (calls /api/monthly)
+  // For Keyword (Monthly) search (calls /api/monthly)
   async function handleMonthlySubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -157,7 +178,10 @@ export default function Home(): ReactElement {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="keyword">
+            <Tabs
+              defaultValue="keyword"
+              onValueChange={(value) => setActiveTab(value)}
+            >
               <TabsList className="grid w-full grid-cols-5 gap-2 p-1 bg-gray-100 rounded-lg">
                 <TabsTrigger
                   value="keyword"
@@ -169,7 +193,7 @@ export default function Home(): ReactElement {
                   value="monthly"
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
                 >
-                  Keyword - Monthly
+                  Keyword (Monthly)
                 </TabsTrigger>
                 <TabsTrigger
                   value="annual"
@@ -190,6 +214,7 @@ export default function Home(): ReactElement {
                   Bulk Search – Marketplaces (7d)
                 </TabsTrigger>
               </TabsList>
+
               <TabsContent value="keyword">
                 <QueryForm onSubmit={handleQuerySubmit} placeholder="Enter keyword..." />
               </TabsContent>
@@ -210,7 +235,7 @@ export default function Home(): ReactElement {
             {loading && (
               <div className="flex items-center justify-center space-x-3 text-blue-600 mt-6 bg-blue-50 p-4 rounded-lg">
                 <LoaderIcon className="animate-spin h-6 w-6" />
-                <p className="text-lg font-medium">Loading data (Please wait ~3 minutes for results)...</p>
+                <p className="text-lg font-medium">{getLoadingMessage(activeTab)}</p>
               </div>
             )}
 
