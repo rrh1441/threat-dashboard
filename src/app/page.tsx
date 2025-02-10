@@ -31,7 +31,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [currentKeyword, setCurrentKeyword] = useState<string>("");
 
-  // For Keyword search (calls /api/threats)
+  // For the Keyword (7d) search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
     setCurrentKeyword(keyword);
     setLoading(true);
@@ -72,6 +72,44 @@ export default function Home() {
     }
   }
 
+  // For the Keyword (365d) search (calls /api/yearly)
+  async function handleAnnualSubmit({ keyword }: { keyword: string }): Promise<void> {
+    setCurrentKeyword(keyword);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/yearly", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch annual data. Status=${response.status}`);
+      }
+
+      // Read response as a blob and trigger a download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = "annual_counts.csv";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -84,19 +122,25 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="keyword">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="keyword" className="data-[state=active]:bg-gray-200">
-                  Keyword
+                  Keyword (7d)
+                </TabsTrigger>
+                <TabsTrigger value="annual" className="data-[state=active]:bg-gray-200">
+                  Keyword (365d)
                 </TabsTrigger>
                 <TabsTrigger value="bulk-communities" className="data-[state=active]:bg-gray-200">
-                  Bulk Search – Communities
+                  Bulk Search – Communities (7d)
                 </TabsTrigger>
                 <TabsTrigger value="bulk-markets" className="data-[state=active]:bg-gray-200">
-                  Bulk Search – Markets
+                  Bulk Search – Marketplaces (7d)
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="keyword">
                 <QueryForm onSubmit={handleQuerySubmit} placeholder="Enter keyword..." />
+              </TabsContent>
+              <TabsContent value="annual">
+                <QueryForm onSubmit={handleAnnualSubmit} placeholder="Enter keyword for annual search..." />
               </TabsContent>
               <TabsContent value="bulk-communities">
                 <CsvUpload />
