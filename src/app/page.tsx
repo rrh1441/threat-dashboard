@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import type { ReactElement } from 'react';
-import { useState } from 'react';
-import QueryForm from '../components/QueryForm';
-import ThreatChart from '../components/ThreatChart';
-import CsvUpload from '../components/CsvUpload'; // Bulk Search – Communities (7d)
-import CsvUploadMarkets from '../components/CsvUploadMarkets'; // Bulk Search – Marketplaces (7d)
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { InfoIcon, AlertTriangleIcon, LoaderIcon } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from "react";
+import QueryForm from "../components/QueryForm";
+import ThreatChart from "../components/ThreatChart";
+import CsvUpload from "../components/CsvUpload"; // Bulk Search – Communities (7d)
+import CsvUploadMarkets from "../components/CsvUploadMarkets"; // Bulk Search – Marketplaces (7d)
+import CsvUploadTelegram from "../components/CsvUploadTelegram"; // Bulk Search – Telegram (7d)
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SingleDayResponse {
   day: string;
@@ -25,33 +25,12 @@ interface MultiDayResponse {
   data: SingleDayResponse[];
 }
 
-export default function Home(): ReactElement {
+export default function Home() {
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [partial, setPartial] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentKeyword, setCurrentKeyword] = useState<string>('');
-
-  // Track which tab is active so we can show the correct loading message
-  const [activeTab, setActiveTab] = useState('keyword');
-
-  // Helper to provide different loading messages per tab
-  function getLoadingMessage(tab: string): string {
-    switch (tab) {
-      case 'keyword':
-        return 'Loading data (Please wait ~5s for results)...';
-      case 'monthly':
-        return 'Loading data (Please wait ~10s for results)...';
-      case 'annual':
-        return 'Loading data (Please wait ~3 minutes for results)...';
-      case 'bulk-communities':
-        return 'Loading data (Please wait ~5 minutes for results)...';
-      case 'bulk-markets':
-        return 'Loading data (Please wait ~5 minutes for results)...';
-      default:
-        return 'Loading data...';
-    }
-  }
+  const [currentKeyword, setCurrentKeyword] = useState<string>("");
 
   // For Keyword (7d) search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
@@ -62,9 +41,9 @@ export default function Home(): ReactElement {
     setChartData([]);
 
     try {
-      const response = await fetch('/api/threats', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/threats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword }),
       });
       if (!response.ok) {
@@ -83,43 +62,7 @@ export default function Home(): ReactElement {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // For Keyword (Monthly) search (calls /api/monthly)
-  async function handleMonthlySubmit({ keyword }: { keyword: string }): Promise<void> {
-    setCurrentKeyword(keyword);
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/monthly', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword }),
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch monthly data. Status=${response.status}`);
-      }
-      // Read response as a blob and trigger a download
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = url;
-      downloadLink.download = 'monthly_counts.csv';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(url);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unknown error occurred.');
+        setError("An unknown error occurred.");
       }
     } finally {
       setLoading(false);
@@ -131,22 +74,20 @@ export default function Home(): ReactElement {
     setCurrentKeyword(keyword);
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch('/api/yearly', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/yearly", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword }),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch annual data. Status=${response.status}`);
       }
-      // Read response as a blob and trigger a download
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
+      const downloadLink = document.createElement("a");
       downloadLink.href = url;
-      downloadLink.download = 'annual_counts.csv';
+      downloadLink.download = "annual_counts.csv";
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -155,7 +96,41 @@ export default function Home(): ReactElement {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred.');
+        setError("An unknown error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // For Keyword - Monthly search (calls /api/monthly)
+  async function handleMonthlySubmit({ keyword }: { keyword: string }): Promise<void> {
+    setCurrentKeyword(keyword);
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/monthly", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch monthly data. Status=${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = "monthly_counts.csv";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
       }
     } finally {
       setLoading(false);
@@ -163,66 +138,45 @@ export default function Home(): ReactElement {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-16 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <Card className="shadow-xl">
-          <CardHeader className="bg-gray-50 border-b border-gray-200">
-            <CardTitle className="text-3xl font-bold text-gray-900">Threat Intelligence Dashboard</CardTitle>
-            <CardDescription className="text-gray-600">
-              FP Deep and Dark Web Results{' '}
-              {currentKeyword && (
-                <span className="font-semibold">
-                  for &quot;{currentKeyword}&quot;
-                </span>
-              )}
-            </CardDescription>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-gray-900">
+              Threat Intelligence Dashboard {currentKeyword && `for "${currentKeyword}"`}
+            </CardTitle>
+            <CardDescription>FP Deep and Dark Web Results</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs
-              defaultValue="keyword"
-              onValueChange={(value) => setActiveTab(value)}
-            >
-              <TabsList className="grid w-full grid-cols-5 gap-2 p-1 bg-gray-100 rounded-lg">
-                <TabsTrigger
-                  value="keyword"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
-                >
+            <Tabs defaultValue="keyword">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="keyword" className="data-[state=active]:bg-gray-200">
                   Keyword (7d)
                 </TabsTrigger>
-                <TabsTrigger
-                  value="monthly"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
-                >
-                  Keyword (Monthly)
-                </TabsTrigger>
-                <TabsTrigger
-                  value="annual"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
-                >
+                <TabsTrigger value="annual" className="data-[state=active]:bg-gray-200">
                   Keyword (365d)
                 </TabsTrigger>
-                <TabsTrigger
-                  value="bulk-communities"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
-                >
+                <TabsTrigger value="monthly" className="data-[state=active]:bg-gray-200">
+                  Keyword - Monthly
+                </TabsTrigger>
+                <TabsTrigger value="bulk-communities" className="data-[state=active]:bg-gray-200">
                   Bulk Search – Communities (7d)
                 </TabsTrigger>
-                <TabsTrigger
-                  value="bulk-markets"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
-                >
+                <TabsTrigger value="bulk-markets" className="data-[state=active]:bg-gray-200">
                   Bulk Search – Marketplaces (7d)
                 </TabsTrigger>
+                <TabsTrigger value="bulk-telegram" className="data-[state=active]:bg-gray-200">
+                  Bulk Search – Telegram (7d)
+                </TabsTrigger>
               </TabsList>
-
               <TabsContent value="keyword">
                 <QueryForm onSubmit={handleQuerySubmit} placeholder="Enter keyword..." />
               </TabsContent>
-              <TabsContent value="monthly">
-                <QueryForm onSubmit={handleMonthlySubmit} placeholder="Enter keyword for monthly search..." />
-              </TabsContent>
               <TabsContent value="annual">
                 <QueryForm onSubmit={handleAnnualSubmit} placeholder="Enter keyword for annual search..." />
+              </TabsContent>
+              <TabsContent value="monthly">
+                <QueryForm onSubmit={handleMonthlySubmit} placeholder="Enter keyword for monthly search..." />
               </TabsContent>
               <TabsContent value="bulk-communities">
                 <CsvUpload />
@@ -230,38 +184,44 @@ export default function Home(): ReactElement {
               <TabsContent value="bulk-markets">
                 <CsvUploadMarkets />
               </TabsContent>
+              <TabsContent value="bulk-telegram">
+                {/* This new component handles CSV upload for Telegram-specific searches */}
+                <CsvUploadTelegram />
+              </TabsContent>
             </Tabs>
 
             {loading && (
-              <div className="flex items-center justify-center space-x-3 text-blue-600 mt-6 bg-blue-50 p-4 rounded-lg">
-                <LoaderIcon className="animate-spin h-6 w-6" />
-                <p className="text-lg font-medium">{getLoadingMessage(activeTab)}</p>
+              <div className="flex items-center justify-center space-x-2 text-blue-600 mt-4">
+                <LoaderIcon className="animate-spin" />
+                <p>Loading data (Please wait ~3 minutes for results)...</p>
               </div>
             )}
 
             {error && (
-              <Alert variant="destructive" className="mt-6">
+              <Alert variant="destructive" className="mt-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {partial && !error && (
-              <Alert variant="default" className="mt-6">
+              <Alert variant="default" className="mt-4">
                 <AlertTriangleIcon className="h-4 w-4" />
                 <AlertTitle>Warning</AlertTitle>
-                <AlertDescription>We hit a rate limit or error partway. Showing partial results.</AlertDescription>
+                <AlertDescription>
+                  We hit a rate limit or error partway. Showing partial results.
+                </AlertDescription>
               </Alert>
             )}
 
             {chartData.length > 0 && (
-              <div className="mt-8 bg-white p-4 rounded-lg shadow-inner">
+              <div className="mt-8">
                 <ThreatChart data={chartData} keyword={currentKeyword} />
               </div>
             )}
 
             {!loading && !error && chartData.length === 0 && (
-              <Alert className="mt-6">
+              <Alert className="mt-4">
                 <InfoIcon className="h-4 w-4" />
                 <AlertTitle>No Data</AlertTitle>
                 <AlertDescription>
