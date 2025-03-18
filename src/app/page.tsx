@@ -151,7 +151,7 @@ export default function Home() {
                   Threat Intelligence Dashboard
                   {currentKeyword && (
                     <span className="ml-2 text-foreground text-xl font-normal">
-                      for "<span className="font-semibold">{currentKeyword}</span>"
+                      for &quot;<span className="font-semibold">{currentKeyword}</span>&quot;
                     </span>
                   )}
                 </CardTitle>
