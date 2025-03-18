@@ -220,7 +220,7 @@ export default function Home() {
 
               {partial && !error && (
                 <Alert
-                  variant="warning"
+                  variant="default"
                   className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
                 >
                   <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -254,4 +254,3 @@ export default function Home() {
     </div>
   )
 }
-
