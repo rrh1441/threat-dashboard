@@ -164,45 +164,39 @@ export default function Home() {
               <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1 p-1 bg-muted/50 rounded-lg">
                 <TabsTrigger 
                   value="keyword" 
-                  className="text-xs md:text-sm relative font-medium transition-all data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="text-xs md:text-sm relative font-medium data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-primary"
                 >
-                  <span className="relative z-10">Keyword (7d)</span>
-                  <span className="absolute inset-0 bg-primary rounded-md opacity-0 transition-opacity data-[state=active]:opacity-100"></span>
+                  Keyword (7d)
                 </TabsTrigger>
                 <TabsTrigger 
                   value="annual" 
-                  className="text-xs md:text-sm relative font-medium transition-all data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="text-xs md:text-sm relative font-medium data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-primary"
                 >
-                  <span className="relative z-10">Keyword (365d)</span>
-                  <span className="absolute inset-0 bg-primary rounded-md opacity-0 transition-opacity data-[state=active]:opacity-100"></span>
+                  Keyword (365d)
                 </TabsTrigger>
                 <TabsTrigger 
                   value="monthly" 
-                  className="text-xs md:text-sm relative font-medium transition-all data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="text-xs md:text-sm relative font-medium data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-primary"
                 >
-                  <span className="relative z-10">Keyword - Monthly</span>
-                  <span className="absolute inset-0 bg-primary rounded-md opacity-0 transition-opacity data-[state=active]:opacity-100"></span>
+                  Keyword - Monthly
                 </TabsTrigger>
                 <TabsTrigger 
                   value="bulk-communities" 
-                  className="text-xs md:text-sm relative font-medium transition-all data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="text-xs md:text-sm relative font-medium data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-primary"
                 >
-                  <span className="relative z-10">Bulk - Communities</span>
-                  <span className="absolute inset-0 bg-primary rounded-md opacity-0 transition-opacity data-[state=active]:opacity-100"></span>
+                  Bulk - Communities
                 </TabsTrigger>
                 <TabsTrigger 
                   value="bulk-markets" 
-                  className="text-xs md:text-sm relative font-medium transition-all data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="text-xs md:text-sm relative font-medium data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-primary"
                 >
-                  <span className="relative z-10">Bulk - Markets</span>
-                  <span className="absolute inset-0 bg-primary rounded-md opacity-0 transition-opacity data-[state=active]:opacity-100"></span>
+                  Bulk - Markets
                 </TabsTrigger>
                 <TabsTrigger 
                   value="bulk-telegram" 
-                  className="text-xs md:text-sm relative font-medium transition-all data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  className="text-xs md:text-sm relative font-medium data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-primary"
                 >
-                  <span className="relative z-10">Bulk - Telegram</span>
-                  <span className="absolute inset-0 bg-primary rounded-md opacity-0 transition-opacity data-[state=active]:opacity-100"></span>
+                  Bulk - Telegram
                 </TabsTrigger>
               </TabsList>
 
