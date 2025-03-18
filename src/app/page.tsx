@@ -31,6 +31,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentKeyword, setCurrentKeyword] = useState<string>("")
+  const [activeTab, setActiveTab] = useState<string>("keyword")
 
   // For Keyword (7d) search (calls /api/threats)
   async function handleQuerySubmit({ keyword }: { keyword: string }): Promise<void> {
@@ -160,7 +161,10 @@ export default function Home() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <Tabs defaultValue="keyword" className="space-y-6">
+            <Tabs 
+              defaultValue="keyword" 
+              className="space-y-6"
+              onValueChange={(value) => setActiveTab(value)}>
               <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1 p-1 bg-muted/50 rounded-lg">
                 <TabsTrigger 
                   value="keyword" 
@@ -224,7 +228,15 @@ export default function Home() {
               {loading && (
                 <div className="flex items-center justify-center space-x-3 text-primary p-4 bg-primary/5 rounded-lg border border-primary/20 animate-pulse">
                   <Loader2 className="animate-spin h-5 w-5" />
-                  <p className="font-medium">Loading data (Please wait ~3 minutes for results)...</p>
+                  <p className="font-medium">
+                    {activeTab === "keyword" && "Loading data (Please wait ~5 seconds)..."}
+                    {activeTab === "annual" && "Loading annual data (Please wait ~3 minutes for results)..."}
+                    {activeTab === "monthly" && "Loading monthly data (Please wait ~10 seconds)..."}
+                    {(activeTab === "bulk-communities" || 
+                      activeTab === "bulk-markets" || 
+                      activeTab === "bulk-telegram") && 
+                      "Processing bulk data (~5s per keyword, less than 5 minutes total)..."}
+                  </p>
                 </div>
               )}
 
