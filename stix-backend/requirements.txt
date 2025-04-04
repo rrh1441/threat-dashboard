@@ -1,0 +1,5 @@
+Flask>=2.0
+Flask-CORS>=3.0
+requests>=2.25
+stix2>=3.0
+python-dotenv>=0.15
