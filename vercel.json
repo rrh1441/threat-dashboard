@@ -1,9 +1,15 @@
 {
     "version": 2,
     "builds": [
-      { "src": "api/**/*.py", "use": "@vercel/python" }
+      {
+        "src": "api",
+        "use": "@vercel/python"
+      }
     ],
     "routes": [
-      { "src": "/api/stix_poc", "dest": "/api/stix_poc.py" }
+      {
+        "src": "/api/stix_poc",
+        "dest": "/api/stix_poc.py"
+      }
     ]
   }
