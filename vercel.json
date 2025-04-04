@@ -1,7 +1,7 @@
 {
     "functions": {
       "api/stix_poc.py": {
-        "runtime": "python3.11",
+        "runtime": "@vercel/python",
         "maxDuration": 300,
         "memory": 1024
       }
