@@ -5,11 +5,5 @@
     ],
     "routes": [
       { "src": "/api/stix_poc", "dest": "/api/stix_poc.py" }
-    ],
-    "functions": {
-      "api/**/*.py": {
-        "maxDuration": 300,
-        "memory": 1024
-      }
-    }
+    ]
   }
