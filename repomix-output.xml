@@ -411,7 +411,7 @@ import os
 import requests
 import json
 import traceback
-from flask import Flask, Response, jsonify # Using Flask Response
+from flask import Flask, Response, jsonify, request  # Added request import
 from datetime import datetime, timezone, timedelta
 
 # --- IMPORTANT: Ensure stix_mapper.py is in this SAME /api directory ---
@@ -438,43 +438,96 @@ app = Flask(__name__)
 # --- API Helper Function with Pagination ---
 def get_all_flashpoint_vulnerabilities(params):
     """Queries the Flashpoint API with pagination to get ALL matching vulnerabilities."""
-    if not FP_API_KEY: return {"error": "FP_API_KEY not configured."}
-    if not FP_VULN_API_URL: return {"error": "FP_VULN_API_URL not configured."}
+    if not FP_API_KEY:
+        return {"error": "FP_API_KEY not configured."}
+    if not FP_VULN_API_URL:
+        return {"error": "FP_VULN_API_URL not configured."}
+    
     headers = {"Authorization": f"Bearer {FP_API_KEY}", "Accept": "application/json"}
-    api_url = f"{FP_VULN_API_URL}/vulnerabilities"; all_vulnerabilities = []; current_page = 0;
-    page_size = FP_API_PAGE_SIZE; total_hits = None; max_pages = 100
+    api_url = f"{FP_VULN_API_URL}/vulnerabilities"
+    all_vulnerabilities = []
+    current_page = 0
+    page_size = FP_API_PAGE_SIZE
+    total_hits = None
+    max_pages = 100
+    
     print(f"Starting fetch. URL: {api_url}, Params: {params}")
+    
     while True:
-        page_params = params.copy(); page_params['from'] = current_page * page_size; page_params['size'] = page_size
-        print(f"Querying page {current_page + 1} (size={page_size})..."); response = None
+        page_params = params.copy()
+        page_params['from'] = current_page * page_size
+        page_params['size'] = page_size
+        print(f"Querying page {current_page + 1} (size={page_size})...")
+        response = None
+        
         try:
             # Vercel functions have their own timeout (maxDuration), requests timeout should be shorter
             response = requests.get(api_url, headers=headers, params=page_params, timeout=60) # 60s timeout per API page request
-            response.raise_for_status(); data = response.json()
+            response.raise_for_status()
+            data = response.json()
             # Optional: print(f"-> Raw API Response (Page {current_page + 1}): {json.dumps(data, indent=2)}")
+            
             page_vulnerabilities = data.get('results', None) # Use 'results' key
-            if page_vulnerabilities is None: page_vulnerabilities = data.get('data', [])
-            if not isinstance(page_vulnerabilities, list): page_vulnerabilities = []
+            if page_vulnerabilities is None:
+                page_vulnerabilities = data.get('data', [])
+            if not isinstance(page_vulnerabilities, list):
+                page_vulnerabilities = []
+                
             all_vulnerabilities.extend(page_vulnerabilities)
+            
             if total_hits is None: # Parse total hits robustly
-                 raw_total = data.get('total_hits', data.get('total', None)); total_hits_val = None
-                 if isinstance(raw_total, dict): total_hits_val = raw_total.get('value')
-                 elif isinstance(raw_total, (int, str)): total_hits_val = raw_total
-                 if total_hits_val is not None:
-                      try: total_hits = int(total_hits_val); print(f"Total potential hits: {total_hits}")
-                      except (ValueError, TypeError): total_hits = None; print(f"Warn: Bad total hits '{total_hits_val}'")
-                 else: total_hits = None; print("Warn: Total hits not found.")
-            num_returned = len(page_vulnerabilities); print(f"-> Got {num_returned} results.")
-            if total_hits == 0: break
-            if total_hits is not None and len(all_vulnerabilities) >= total_hits: break
-            if data.get("next") is None and num_returned > 0: break # Stop if API says no more pages explicitly
-            if num_returned < page_size: break # Stop if last page was not full
-            if current_page >= max_pages -1 : print(f"Warn: Max pages ({max_pages}) reached."); break
+                raw_total = data.get('total_hits', data.get('total', None))
+                total_hits_val = None
+                if isinstance(raw_total, dict):
+                    total_hits_val = raw_total.get('value')
+                elif isinstance(raw_total, (int, str)):
+                    total_hits_val = raw_total
+                
+                if total_hits_val is not None:
+                    try:
+                        total_hits = int(total_hits_val)
+                        print(f"Total potential hits: {total_hits}")
+                    except (ValueError, TypeError):
+                        total_hits = None
+                        print(f"Warn: Bad total hits '{total_hits_val}'")
+                else:
+                    total_hits = None
+                    print("Warn: Total hits not found.")
+            
+            num_returned = len(page_vulnerabilities)
+            print(f"-> Got {num_returned} results.")
+            
+            # Stop conditions
+            if total_hits == 0:
+                break
+            if total_hits is not None and len(all_vulnerabilities) >= total_hits:
+                break
+            if data.get("next") is None and num_returned > 0:
+                break # Stop if API says no more pages explicitly
+            if num_returned < page_size:
+                break # Stop if last page was not full
+            if current_page >= max_pages - 1:
+                print(f"Warn: Max pages ({max_pages}) reached.")
+                break
+                
             current_page += 1
-        # Keep detailed exception handling
-        except requests.exceptions.Timeout: error_msg = f"API Timeout querying Flashpoint page {current_page + 1}."; print(f"Error: {error_msg}"); return {"error": error_msg}
-        except requests.exceptions.HTTPError as e: error_detail = f"{e.response.status_code}: "; try: error_detail += e.response.text[:200]; except Exception: error_detail += "(No body)"; print(f"Error: HTTP Error page {current_page + 1}: {error_detail}"); return {"error": f"API HTTP Error page {current_page + 1}: {error_detail}"}
-        except Exception as e: print(f"Error: Unexpected pagination error: {traceback.format_exc()}"); return {"error": f"Unexpected pagination error: {e}"}
+            
+        except requests.exceptions.Timeout:
+            error_msg = f"API Timeout querying Flashpoint page {current_page + 1}."
+            print(f"Error: {error_msg}")
+            return {"error": error_msg}
+        except requests.exceptions.HTTPError as e:
+            error_detail = f"{e.response.status_code}: "
+            try:
+                error_detail += e.response.text[:200]
+            except Exception:
+                error_detail += "(No body)"
+            print(f"Error: HTTP Error page {current_page + 1}: {error_detail}")
+            return {"error": f"API HTTP Error page {current_page + 1}: {error_detail}"}
+        except Exception as e:
+            print(f"Error: Unexpected pagination error: {traceback.format_exc()}")
+            return {"error": f"Unexpected pagination error: {e}"}
+    
     print(f"Total vulnerabilities fetched: {len(all_vulnerabilities)}")
     return {"vulnerabilities": all_vulnerabilities}
 
@@ -507,19 +560,22 @@ def handler(path):
     # --- Map ---
     vulnerabilities = result.get("vulnerabilities", [])
     if not vulnerabilities:
-        print("No vulnerabilities found matching criteria.");
+        print("No vulnerabilities found matching criteria.")
         # Return an empty bundle (valid STIX)
         empty_bundle = Bundle(objects=[TLP_WHITE_DEFINITION], allow_custom=True)
         return Response(empty_bundle.serialize(indent=2), mimetype='application/json', status=200)
 
     print(f"Found {len(vulnerabilities)}. Converting to STIX...")
-    all_stix_objects = []; conversion_errors = 0
+    all_stix_objects = []
+    conversion_errors = 0
     for vuln_data in vulnerabilities:
         try:
             stix_objs_for_vuln = map_flashpoint_vuln_to_stix(vuln_data)
             all_stix_objects.extend(stix_objs_for_vuln)
         except Exception as map_err:
-            conversion_errors += 1; vuln_id_err = vuln_data.get('id', 'UNKNOWN'); print(f"Error mapping ID {vuln_id_err}: {map_err}\n{traceback.format_exc()}")
+            conversion_errors += 1
+            vuln_id_err = vuln_data.get('id', 'UNKNOWN')
+            print(f"Error mapping ID {vuln_id_err}: {map_err}\n{traceback.format_exc()}")
 
     print(f"Conversion done. Generated {len(all_stix_objects)} objects. {conversion_errors} errors.")
 
@@ -4783,13 +4839,13 @@ export default {
 
 <file path="vercel.json">
 {
-    "functions": {
-      "api/stix_poc.py": {
-        "runtime": "@vercel/python@3.9",
-        "maxDuration": 300,
-        "memory": 1024
-      }
-    }
+    "version": 2,
+    "builds": [
+      { "src": "api/**/*.py", "use": "@vercel/python" }
+    ],
+    "routes": [
+      { "src": "/api/stix_poc", "dest": "/api/stix_poc.py" }
+    ]
   }
 </file>
 
