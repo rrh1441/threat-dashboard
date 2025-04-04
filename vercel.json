@@ -12,7 +12,7 @@
     ],
     "routes": [
       {
-        "src": "/api/stix_poc",
+        "src": "/py-api/stix_poc",
         "dest": "/api/stix_poc.py"
       }
     ]

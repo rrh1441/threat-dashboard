@@ -8,10 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertTriangle, CheckCircle, Download, ArrowLeft } from 'lucide-react';
 
-// Relative path to the Vercel function (Next.js handles routing to /api)
-// NOTE: This endpoint will currently fail because vercel.json was removed.
-// It needs to be restored OR the logic moved to a TS API route.
-const STIX_POC_ENDPOINT = '/api/stix_poc';
+// *** UPDATED API Endpoint Path ***
+const STIX_POC_ENDPOINT = '/py-api/stix_poc'; // Use the new non-conflicting path
 
 interface StatusMessage {
   text: string;
@@ -24,29 +22,20 @@ export default function VulnStixPage() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [bundleSizeBytes, setBundleSizeBytes] = useState<number>(0);
 
-  // Cleanup blob URL on unmount or when new generation starts
+  // Cleanup blob URL
   React.useEffect(() => {
-    // Clear previous download URL if it exists when the component mounts
-    // or when downloadUrl changes.
-    if (downloadUrl) {
-      URL.revokeObjectURL(downloadUrl);
-      // Optionally reset state fully here, though clearing might be enough
-      // setDownloadUrl(null);
-      // setBundleSizeBytes(0);
-    }
-    // Return cleanup function: This runs when the component unmounts
-    // or *before* the effect runs again if dependencies change.
+    // Return cleanup function
     return () => {
       if (downloadUrl) {
         URL.revokeObjectURL(downloadUrl);
       }
     };
-  }, [downloadUrl]); // <-- FIX 1: Added downloadUrl dependency
+  }, [downloadUrl]); // Dependency array includes downloadUrl
 
   const handleGenerateClick = async () => {
     setIsLoading(true);
     setStatus({ text: 'Generating STIX bundle... This can take several minutes. Please wait.', type: 'info' });
-    // Revoke previous URL if it exists before starting new request
+    // Revoke previous URL if it exists
     if (downloadUrl) {
         URL.revokeObjectURL(downloadUrl);
         setDownloadUrl(null);
@@ -55,7 +44,6 @@ export default function VulnStixPage() {
 
     try {
       // Attempt to fetch from the backend endpoint
-      // NOTE: This fetch will fail until the backend API route is restored/fixed
       const response = await fetch(STIX_POC_ENDPOINT, {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
@@ -66,58 +54,55 @@ export default function VulnStixPage() {
       if (response.ok && contentType && contentType.includes("application/json")) {
           // Success - response body IS the STIX bundle JSON
           const bundleBlob = await response.blob();
-          // Check if it's an empty bundle (only contains definition)
-          const bundleText = await bundleBlob.text(); // Read blob text to check content
+          const bundleText = await bundleBlob.text();
           let bundleData;
           try {
               bundleData = JSON.parse(bundleText);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (_parseError) { // <-- FIX 2: Prefixed unused variable
-               // If parsing fails, it's not valid JSON as expected
+          } catch (_parseError) { // Prefixed unused variable
                throw new Error("Failed to parse successful response JSON.");
           }
 
           // Check if the bundle contains more than just the marking definition
           if (bundleData && bundleData.objects && bundleData.objects.length > 1) {
-              const url = URL.createObjectURL(bundleBlob); // Create URL only if bundle has content
+              const url = URL.createObjectURL(bundleBlob);
               setDownloadUrl(url);
               setBundleSizeBytes(bundleBlob.size);
               setStatus({ text: `Bundle generated successfully (${(bundleBlob.size / 1024).toFixed(1)} KB). Click below to download.`, type: 'success' });
           } else {
-              // API returned 200 OK but with an empty bundle (no vulns found or mapped)
+              // API returned 200 OK but with an empty bundle
               setStatus({ text: 'Warning: No vulnerabilities found matching criteria or failed to map them.', type: 'warning' });
               setDownloadUrl(null);
               setBundleSizeBytes(0);
           }
 
       } else {
-          // Handle JSON error response from Flask or non-JSON errors
+          // Handle non-OK or non-JSON responses
           let errorMsg = `Request failed with status ${response.status}`;
           if (contentType && contentType.includes("application/json")) {
               try {
                   const errorResult = await response.json();
-                  // Use detail if available, otherwise message
                   errorMsg = errorResult?.errors?.[0]?.detail || errorResult.message || errorMsg;
               } catch (jsonError) { console.error("Could not parse error JSON:", jsonError); }
           } else {
               try {
                   const textError = await response.text();
+                  // Try to extract useful info from non-JSON response (like HTML 404 page)
                   errorMsg = `${response.status}: ${textError.substring(0,150)}...`;
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              } catch (_textErr) { /* Ignore */ } // <-- FIX 3: Prefixed unused variable
+              } catch (_textErr) { /* Ignore inability to read text body */ } // Prefixed unused variable
           }
           throw new Error(errorMsg);
       }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: unknown) { // <-- FIX 4: Changed 'any' to 'unknown' and added type checking below
+    } catch (error: unknown) { // Use unknown
       console.error("Error generating/fetching bundle:", error);
-      // Type check before accessing potentially non-existent properties
+      // Type check before accessing message
       let errorMessage = 'Generation failed or could not connect.';
       if (error instanceof Error) {
           errorMessage = error.message;
       } else if (typeof error === 'string') {
-           errorMessage = error; // Handle if the error is just a string
+           errorMessage = error;
       }
       setStatus({ text: `Error: ${errorMessage}`, type: 'error' });
       setDownloadUrl(null);
@@ -137,11 +122,9 @@ export default function VulnStixPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      // Decide whether to keep the URL for re-download or clear it
-      // setDownloadUrl(null); // Clearing might be better UX
-      // setBundleSizeBytes(0);
   };
 
+  // --- JSX ---
   return (
     <main className="p-4 md:p-8">
       <Card className="max-w-3xl mx-auto shadow-lg dark:bg-slate-950">
@@ -152,13 +135,11 @@ export default function VulnStixPage() {
               <ArrowLeft className="mr-2 h-4 w-4"/> Back
             </Button>
           </Link>
-          {/* Title and Description - Adjusted padding */}
+          {/* Title and Description */}
           <div className="pt-12 text-center sm:pt-0 sm:text-left sm:pl-24">
             <CardTitle className="text-2xl">Vulnerability to STIX Generator (POC)</CardTitle>
             <CardDescription>
               Generate & Download STIX Bundle
-              {/* Indicate backend status - REMOVE/UPDATE THIS LATER */}
-              <span className="text-destructive ml-2">(Backend API Disabled)</span>
             </CardDescription>
           </div>
         </CardHeader>
@@ -167,7 +148,7 @@ export default function VulnStixPage() {
             <p className="text-sm text-muted-foreground mb-3">
               Click to generate a STIX bundle for vulnerabilities published in the last 14 days with public exploits, specific solutions, and remote location.
               <br />
-              <strong className="text-destructive">Warning:</strong> Generation is performed live and may take up to 5 minutes, potentially timing out. (Backend currently disabled).
+              <strong className="text-destructive">Warning:</strong> Generation is performed live and may take up to 5 minutes, potentially timing out.
             </p>
             <Button onClick={handleGenerateClick} disabled={isLoading} className="w-full sm:w-auto">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
