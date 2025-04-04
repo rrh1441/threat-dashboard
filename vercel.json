@@ -1,9 +1,9 @@
 {
     "functions": {
       "api/stix_poc.py": {
-        "runtime": "python3.11", // Or "python3.9", "python3.12" - choose a supported version
-        "maxDuration": 300,     // 300 seconds = 5 minutes (Requires Vercel Pro/Enterprise plan)
-        "memory": 1024        // Default is 1024MB, increase (e.g., 2048) if needed
+        "runtime": "python3.11",
+        "maxDuration": 300,
+        "memory": 1024
       }
     }
   }
