@@ -4,7 +4,7 @@ import os
 import requests
 import json
 import traceback
-from flask import Flask, Response, jsonify # Using Flask Response
+from flask import Flask, Response, jsonify, request  # Added request import
 from datetime import datetime, timezone, timedelta
 
 # --- IMPORTANT: Ensure stix_mapper.py is in this SAME /api directory ---
