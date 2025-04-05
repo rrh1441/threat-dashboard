@@ -12,6 +12,9 @@
     ],
     "routes": [
       {
+        "handle": "filesystem"
+      },
+      {
         "src": "/py-api/stix_poc",
         "dest": "/api/stix_poc.py"
       }
