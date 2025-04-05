@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertTriangle, CheckCircle, Download, ArrowLeft } from 'lucide-react';
 
-// *** UPDATED API Endpoint Path ***
-const STIX_POC_ENDPOINT = '/py-api/stix_poc'; // Use the new non-conflicting path
+// Update API endpoint to the external backend URL
+const STIX_BACKEND_URL = 'https://stix-backend.vercel.app/';
 
 interface StatusMessage {
   text: string;
@@ -34,7 +34,7 @@ export default function VulnStixPage() {
 
   const handleGenerateClick = async () => {
     setIsLoading(true);
-    setStatus({ text: 'Generating STIX bundle... This can take several minutes. Please wait.', type: 'info' });
+    setStatus({ text: 'Fetching STIX bundle from backend... This can take several minutes. Please wait.', type: 'info' });
     // Revoke previous URL if it exists
     if (downloadUrl) {
         URL.revokeObjectURL(downloadUrl);
@@ -43,8 +43,8 @@ export default function VulnStixPage() {
     }
 
     try {
-      // Attempt to fetch from the backend endpoint
-      const response = await fetch(STIX_POC_ENDPOINT, {
+      // Fetch from the external backend endpoint
+      const response = await fetch(STIX_BACKEND_URL, {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
       });
@@ -68,7 +68,7 @@ export default function VulnStixPage() {
               const url = URL.createObjectURL(bundleBlob);
               setDownloadUrl(url);
               setBundleSizeBytes(bundleBlob.size);
-              setStatus({ text: `Bundle generated successfully (${(bundleBlob.size / 1024).toFixed(1)} KB). Click below to download.`, type: 'success' });
+              setStatus({ text: `Bundle fetched successfully (${(bundleBlob.size / 1024).toFixed(1)} KB). Click below to download.`, type: 'success' });
           } else {
               // API returned 200 OK but with an empty bundle
               setStatus({ text: 'Warning: No vulnerabilities found matching criteria or failed to map them.', type: 'warning' });
@@ -96,9 +96,9 @@ export default function VulnStixPage() {
       }
 
     } catch (error: unknown) { // Use unknown
-      console.error("Error generating/fetching bundle:", error);
+      console.error("Error fetching bundle:", error);
       // Type check before accessing message
-      let errorMessage = 'Generation failed or could not connect.';
+      let errorMessage = 'Bundle fetch failed or could not connect to backend.';
       if (error instanceof Error) {
           errorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -152,7 +152,7 @@ export default function VulnStixPage() {
             </p>
             <Button onClick={handleGenerateClick} disabled={isLoading} className="w-full sm:w-auto">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? 'Generating (takes time)...' : 'Generate STIX Bundle'}
+              {isLoading ? 'Fetching bundle...' : 'Generate STIX Bundle'}
             </Button>
           </div>
 
@@ -176,7 +176,7 @@ export default function VulnStixPage() {
                 <h3 className="font-semibold mb-2">Download Bundle</h3>
                 <Button onClick={triggerDownload}>
                   <Download className="mr-2 h-4 w-4" />
-                  Download Generated Bundle ({ (bundleSizeBytes / 1024).toFixed(1) } KB)
+                  Download STIX Bundle ({ (bundleSizeBytes / 1024).toFixed(1) } KB)
                 </Button>
               </div>
           )}
