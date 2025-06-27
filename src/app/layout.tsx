@@ -3,6 +3,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import AccessModal from "@/components/AccessModal";
 
 // Load the Inter font
 const inter = Inter({
@@ -29,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${jetBrainsMono.variable} antialiased`}>
-        {children}
+        <AccessModal>
+          {children}
+        </AccessModal>
       </body>
     </html>
   );
