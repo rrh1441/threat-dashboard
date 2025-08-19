@@ -45,24 +45,63 @@ function buildDailyPayload(keyword: string, day: string) {
 /**
  * Calls your API for a given keyword and day.
  * Returns the total count as a number.
+ * Includes retry logic for handling transient failures.
  */
-async function fetchDailyTotal(keyword: string, day: string): Promise<number> {
-  const payload = buildDailyPayload(keyword, day);
-  const apiResponse = await fetch(process.env.THREAT_API_URL as string, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.THREAT_API_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!apiResponse.ok) {
-    const errorText = await apiResponse.text();
-    throw new Error(`Day ${day} for keyword "${keyword}" => ${apiResponse.status}: ${errorText}`);
+async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Promise<number> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const payload = buildDailyPayload(keyword, day);
+      
+      // Add request timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const apiResponse = await fetch(process.env.THREAT_API_URL as string, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.THREAT_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        // If it's a server error (5xx) and we have retries left, continue
+        if (apiResponse.status >= 500 && attempt < maxRetries) {
+          console.warn(`Attempt ${attempt} failed for ${keyword} on ${day} (${apiResponse.status}), retrying in ${Math.pow(2, attempt)}s...`);
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          continue;
+        }
+        throw new Error(`Day ${day} for keyword "${keyword}" => ${apiResponse.status}: ${errorText}`);
+      }
+      
+      const data = await apiResponse.json();
+      return data?.total?.value ?? 0;
+    } catch (error) {
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Handle timeout and other network errors
+      const isTimeoutOrNetworkError = error instanceof Error && 
+        (error.name === 'AbortError' || error.message.includes('fetch'));
+      
+      if (isTimeoutOrNetworkError) {
+        console.warn(`Attempt ${attempt} failed for ${keyword} on ${day} (network/timeout), retrying in ${Math.pow(2, attempt)}s...`);
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        continue;
+      }
+      
+      // For non-retryable errors, throw immediately
+      throw error;
+    }
   }
-  const data = await apiResponse.json();
-  return data?.total?.value ?? 0;
+  return 0;
 }
 
 /**
@@ -102,7 +141,13 @@ export async function POST(request: Request) {
           // Use the actual day string as the key so that later we can replace headers
           rowData[day] = count;
         } catch (error) {
-          console.error(`Error processing keyword "${keyword}" on ${day}:`, error);
+          console.error(`Error processing keyword "${keyword}" on ${day}:`, {
+            keyword,
+            day,
+            error: error instanceof Error ? error.message : error,
+            timestamp: new Date().toISOString(),
+            stack: error instanceof Error ? error.stack : undefined
+          });
           rowData[day] = 0;
         }
         await new Promise((resolve) => setTimeout(resolve, 250));
