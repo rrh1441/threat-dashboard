@@ -28,7 +28,7 @@ function getLast7DaysExcludingToday(): string[] {
 function buildDailyPayload(keyword: string, day: string) {
   return {
     page: 0,
-    size: 0,
+    size: 1, // Changed from 0 to 1 - we only need the total count, not the actual results
     highlight: { enabled: true },
     include_total: true,
     query: keyword,
