@@ -47,7 +47,8 @@ function buildDailyPayload(keyword: string, day: string) {
  * Returns the total count as a number.
  * Includes retry logic for handling transient failures.
  */
-async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Promise<number> {
+async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Promise<{ count: number; hadRetries: boolean }> {
+  let hadRetries = false;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const payload = buildDailyPayload(keyword, day);
@@ -73,6 +74,7 @@ async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Pr
         const errorText = await apiResponse.text();
         // If it's a server error (5xx) and we have retries left, continue
         if (apiResponse.status >= 500 && attempt < maxRetries) {
+          hadRetries = true;
           console.warn(`Attempt ${attempt} failed for ${keyword} on ${day} (${apiResponse.status}), retrying in ${Math.pow(2, attempt)}s...`);
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
           continue;
@@ -81,7 +83,7 @@ async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Pr
       }
       
       const data = await apiResponse.json();
-      return data?.total?.value ?? 0;
+      return { count: data?.total?.value ?? 0, hadRetries };
     } catch (error) {
       if (attempt === maxRetries) {
         throw error;
@@ -92,6 +94,7 @@ async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Pr
         (error.name === 'AbortError' || error.message.includes('fetch'));
       
       if (isTimeoutOrNetworkError) {
+        hadRetries = true;
         console.warn(`Attempt ${attempt} failed for ${keyword} on ${day} (network/timeout), retrying in ${Math.pow(2, attempt)}s...`);
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         continue;
@@ -101,7 +104,7 @@ async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Pr
       throw error;
     }
   }
-  return 0;
+  return { count: 0, hadRetries };
 }
 
 /**
@@ -131,15 +134,22 @@ export async function POST(request: Request) {
     }
     const days = getLast7DaysExcludingToday();
     const results: Array<Record<string, number | string>> = [];
+    const retryLog: string[] = [];
+    
     // For each keyword in the CSV file
     for (const keyword of keywords) {
       const rowData: Record<string, number | string> = { keyword };
       // For each day, fetch the Telegram-specific count and delay 250ms between calls
       for (const day of days) {
         try {
-          const count = await fetchDailyTotal(keyword, day);
+          const result = await fetchDailyTotal(keyword, day);
           // Use the actual day string as the key so that later we can replace headers
-          rowData[day] = count;
+          rowData[day] = result.count;
+          
+          // Track successful retries for user notification
+          if (result.hadRetries) {
+            retryLog.push(`Successfully recovered "${keyword}" on ${day} after retries`);
+          }
         } catch (error) {
           console.error(`Error processing keyword "${keyword}" on ${day}:`, {
             keyword,
@@ -148,6 +158,7 @@ export async function POST(request: Request) {
             timestamp: new Date().toISOString(),
             stack: error instanceof Error ? error.stack : undefined
           });
+          retryLog.push(`Failed to process "${keyword}" on ${day} after retries`);
           rowData[day] = 0;
         }
         await new Promise((resolve) => setTimeout(resolve, 250));
@@ -157,13 +168,31 @@ export async function POST(request: Request) {
     // Build header fields using the actual date strings.
     const fields = ["keyword", ...days];
     const json2csvParser = new JSON2CSVParser({ fields });
-    const outputCsv = json2csvParser.parse(results);
+    let outputCsv = json2csvParser.parse(results);
+    
+    // Add retry information as comments at the end of CSV if there were any issues
+    if (retryLog.length > 0) {
+      outputCsv += "\n\n# Retry Information:\n";
+      retryLog.forEach(log => {
+        outputCsv += `# ${log}\n`;
+      });
+      outputCsv += "# Note: Failed requests were retried up to 3 times with exponential backoff\n";
+    }
+    
+    const headers: Record<string, string> = {
+      "Content-Type": "text/csv",
+      "Content-Disposition": 'attachment; filename="telegram_counts.csv"',
+    };
+    
+    // Add retry count to response headers for programmatic access
+    if (retryLog.length > 0) {
+      headers["X-Retry-Count"] = retryLog.length.toString();
+      headers["X-Retry-Info"] = "Some requests required retries due to API errors";
+    }
+    
     return new Response(outputCsv, {
       status: 200,
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": 'attachment; filename="telegram_counts.csv"',
-      },
+      headers,
     });
   } catch (error) {
     console.error("Bulk Telegram API Error:", error);
