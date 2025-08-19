@@ -72,6 +72,16 @@ async function fetchDailyTotal(keyword: string, day: string, maxRetries = 3): Pr
       
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
+        
+        // Handle rate limiting (429) with longer backoff
+        if (apiResponse.status === 429 && attempt < maxRetries) {
+          hadRetries = true;
+          const rateLimitDelay = Math.min(Math.pow(3, attempt) * 5000, 60000); // 15s, 45s, max 60s
+          console.warn(`Rate limited for ${keyword} on ${day}, retrying in ${rateLimitDelay/1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+          continue;
+        }
+        
         // If it's a server error (5xx) and we have retries left, continue
         if (apiResponse.status >= 500 && attempt < maxRetries) {
           hadRetries = true;
@@ -135,12 +145,21 @@ export async function POST(request: Request) {
     const days = getLast7DaysExcludingToday();
     const results: Array<Record<string, number | string>> = [];
     const retryLog: string[] = [];
+    const startTime = Date.now();
+    const TIMEOUT_LIMIT = 280000; // 280 seconds, leaving 20s buffer before Vercel's 300s limit
     
     // For each keyword in the CSV file
     for (const keyword of keywords) {
       const rowData: Record<string, number | string> = { keyword };
-      // For each day, fetch the Telegram-specific count and delay 250ms between calls
+      // For each day, fetch the Telegram-specific count and delay 100ms between calls
       for (const day of days) {
+        // Check if we're approaching timeout limit
+        if (Date.now() - startTime > TIMEOUT_LIMIT) {
+          console.warn(`Approaching timeout limit, stopping processing at keyword "${keyword}" day "${day}"`);
+          retryLog.push(`Processing stopped due to timeout - not all keywords completed`);
+          break;
+        }
+        
         try {
           const result = await fetchDailyTotal(keyword, day);
           // Use the actual day string as the key so that later we can replace headers
@@ -161,9 +180,16 @@ export async function POST(request: Request) {
           retryLog.push(`Failed to process "${keyword}" on ${day} after retries`);
           rowData[day] = 0;
         }
-        await new Promise((resolve) => setTimeout(resolve, 250));
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Reduced from 250ms to 100ms
       }
       results.push(rowData);
+      
+      // Check timeout between keywords too
+      if (Date.now() - startTime > TIMEOUT_LIMIT) {
+        console.warn(`Timeout limit reached, processed ${results.length}/${keywords.length} keywords`);
+        retryLog.push(`Processing incomplete: ${results.length}/${keywords.length} keywords processed due to timeout`);
+        break;
+      }
     }
     // Build header fields using the actual date strings.
     const fields = ["keyword", ...days];
